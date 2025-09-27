@@ -21,7 +21,6 @@ class Server;
 
 class Settings;
 class MapDatabase;
-class IRollbackManager;
 class EmergeManager;
 class ServerEnvironment;
 struct BlockMakeData;
@@ -150,6 +149,7 @@ public:
 	/// @param now current game time
 	void finishBlockMake(BlockMakeData *data,
 		std::map<v3s16, MapBlock*> *changed_blocks, u32 now);
+	void cancelBlockMake(BlockMakeData *data);
 
 	/*
 		Get a block from somewhere.
@@ -186,6 +186,7 @@ public:
 	/*
 		Database functions
 	*/
+	static std::vector<std::string> getDatabaseBackends();
 	static MapDatabase *createDatabase(const std::string &name, const std::string &savedir, Settings &conf);
 
 	// Call these before and after saving of blocks
@@ -258,6 +259,9 @@ protected:
 
 private:
 	friend class ModApiMapgen; // for m_transforming_liquid
+
+	// extra border area during mapgen (in blocks)
+	constexpr static v3s16 EMERGE_EXTRA_BORDER{1, 1, 1};
 
 	// Emerge manager
 	EmergeManager *m_emerge;

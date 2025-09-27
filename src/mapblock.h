@@ -30,6 +30,7 @@ class IGameDef;
 class MapBlockMesh;
 class VoxelManipulator;
 class NameIdMapping;
+class TestMapBlock;
 
 #define BLOCK_TIMESTAMP_UNDEFINED 0xffffffff
 
@@ -54,7 +55,7 @@ struct abm_trigger_one {
 ////
 
 enum ModReason : u32 {
-	MOD_REASON_REALLOCATE                 = 1 << 0,
+//	UNUSED                                = 1 << 0,
 	MOD_REASON_SET_IS_UNDERGROUND         = 1 << 1,
 	MOD_REASON_SET_LIGHTING_COMPLETE      = 1 << 2,
 	MOD_REASON_SET_GENERATED              = 1 << 3,
@@ -97,28 +98,6 @@ public:
 	void makeOrphan()
 	{
 		m_orphan = true;
-	}
-
-	void reallocate()
-	{
-		const auto lock = lock_unique_rec();
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#if __GNUC__ > 7
-#pragma GCC diagnostic ignored "-Wclass-memaccess"
-#endif
-#endif
-		if constexpr(!CONTENT_IGNORE) {
-			memset(data, 0, nodecount * sizeof(MapNode));
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-
-		} else
-		for (u32 i = 0; i < nodecount; i++)
-			data[i] = ignoreNode;
-
-		//raiseModified(MOD_STATE_WRITE_NEEDED, MOD_REASON_REALLOCATE);
 	}
 
 	////
@@ -240,26 +219,28 @@ public:
 	//// Position stuff
 	////
 
+	/// @return map position of block
 	inline v3bpos_t getPos() const
 	{
 		return m_pos;
 	}
 
+	/// @return in-world position of the block (== pos * MAP_BLOCKSIZE)
 	inline v3s16 getPosRelative()
 	{
 		return m_pos_relative;
 	}
 
-	inline core::aabbox3d<s16> getBox() {
+	/// @return in-world box of the block
+	inline core::aabbox3d<s16> getBox()
+	{
 		return getBox(getPosRelative());
 	}
 
-	static inline core::aabbox3d<s16> getBox(const v3s16 &pos_relative)
+	static inline core::aabbox3d<s16> getBox(v3s16 pos_relative)
 	{
 		return core::aabbox3d<s16>(pos_relative,
-				pos_relative
-				+ v3s16(MAP_BLOCKSIZE, MAP_BLOCKSIZE, MAP_BLOCKSIZE)
-				- v3s16(1,1,1));
+				pos_relative + v3s16(MAP_BLOCKSIZE - 1));
 	}
 
 	////
@@ -278,7 +259,7 @@ public:
 		return isValidPosition(p.X, p.Y, p.Z);
 	}
 
-	inline MapNode getNode(v3pos_t p, bool *valid_position)
+	inline MapNode getNode(const auto &p, bool *valid_position)
 	{
 		*valid_position = isValidPosition(p.X, p.Y, p.Z);
 
@@ -286,7 +267,7 @@ public:
 			return ignoreNode;
 
 		const auto lock = lock_shared_rec();
-		return data[p.Z * zstride + p.Y * ystride + p.X];
+		return data[m_is_mono_block ? 0 : p.Z * zstride + p.Y * ystride + p.X];
 	}
 
 	MapNode getNodeNoEx(v3pos_t p);
@@ -302,6 +283,7 @@ public:
 		if (!isValidPosition(x, y, z))
 			throw InvalidPositionException();
 
+		expandNodesIfNeeded();
 		data[z * zstride + y * ystride + x] = n;
 		raiseModified(MOD_STATE_WRITE_NEEDED, MOD_REASON_SET_NODE);
 	}
@@ -321,7 +303,7 @@ public:
 	inline MapNode getNodeNoCheck(s16 x, s16 y, s16 z)
 	{
 		const auto lock = lock_shared_rec();
-		return data[z * zstride + y * ystride + x];
+		return data[m_is_mono_block ? 0 : z * zstride + y * ystride + x];
 	}
 
 	inline MapNode getNodeNoCheck(v3s16 p)
@@ -332,7 +314,7 @@ public:
 	inline void setNodeNoCheck(s16 x, s16 y, s16 z, MapNode n)
 	{
         const auto lock = lock_unique_rec();
-
+		expandNodesIfNeeded();
 		data[z * zstride + y * ystride + x] = n;
 		raiseModified(MOD_STATE_WRITE_NEEDED, MOD_REASON_SET_NODE, false);
 	}
@@ -340,6 +322,7 @@ public:
 	inline void setNodeNoCheck(v3pos_t p, MapNode n, bool important = false)
 	{
 		const auto lock = lock_unique_rec();
+		expandNodesIfNeeded();
 
 		data[p.Z * zstride + p.Y * ystride + p.X] = n;
 		raiseModified(MOD_STATE_WRITE_NEEDED, MOD_REASON_SET_NODE, important);
@@ -370,7 +353,7 @@ public:
 	bool saveStaticObject(u16 id, const StaticObject &obj, u32 reason);
 
 	/// @note This method is only for Server, don't call it on client
-	void step(float dtime, const std::function<bool(v3s16, MapNode, f32)> &on_timer_cb);
+	void step(float dtime, const std::function<bool(v3s16, MapNode, NodeTimer)> &on_timer_cb);
 
 	////
 	//// Timestamp (see m_timestamp)
@@ -420,18 +403,18 @@ public:
 	}
 
 	////
-	//// Reference counting (see m_refcount)
+	//// Reference counting (different purposes on client vs. server)
 	////
 
 	inline void refGrab()
 	{
-		assert(m_refcount < SHRT_MAX);
+		//assert(m_refcount < SHRT_MAX);
 		m_refcount++;
 	}
 
 	inline void refDrop()
 	{
-		assert(m_refcount > 0);
+		//assert(m_refcount > 0);
 		m_refcount--;
 	}
 
@@ -483,6 +466,7 @@ public:
 	/*
 		Flags
 	*/
+	inline void setNode(s16 x, s16 y, s16 z, const MapNode & n) { return setNode({x,y,z}, n); }
 
 	enum modified_light {modified_light_no = 0, modified_light_yes};
 	void raiseModified(u32 mod, modified_light light = modified_light_no, bool important = false);
@@ -570,7 +554,7 @@ public:
 
 	MapNode &getNodeNoLock(v3pos_t p)
 	{
-		return data[p.Z*zstride + p.Y*ystride + p.X];
+		return data[ m_is_mono_block ? 0 : p.Z*zstride + p.Y*ystride + p.X];
 	}
 
 	void setNodeNoLock(v3pos_t p, MapNode n, bool important = false);
@@ -587,14 +571,25 @@ private:
 
 	static const u32 nodecount = MAP_BLOCKSIZE * MAP_BLOCKSIZE * MAP_BLOCKSIZE;
 
+private:
+#if BUILD_UNITTESTS
+	// access to data, tryConvertToMonoBlock, deconvertMonoblock
+	friend class TestMapBlock;
+#endif
+
 	/*
 		Private methods
 	*/
 
 	void deSerialize_pre22(std::istream &is, u8 version, bool disk);
+	// check if all nodes are identical, if so convert to monoblock
+	void tryShrinkNodes();
+	// if a monoblock, expand storage back to the full array
+	void expandNodesIfNeeded();
+	void reallocate(u32 count, MapNode n);
 
 	static void getBlockNodeIdMapping(NameIdMapping *nimap, MapNode *nodes,
-		const NodeDefManager *nodedef);
+		u32 count, const NodeDefManager *nodedef);
 	static void correctBlockNodeIds(const NameIdMapping *nimap, MapNode *nodes,
 			IGameDef *gamedef);
 
@@ -629,18 +624,14 @@ private:
 	 */
 	v3s16 m_pos_relative;
 
-	/*
-		Reference count; currently used for determining if this block is in
-		the list of blocks to be drawn.
-	*/
 	std::atomic_short m_refcount = 0;
 
 	/*
-	 * Note that this is not an inline array because that has implications for
-	 * heap fragmentation (the array is exactly 16K), CPU caches and/or
-	 * optimizability of algorithms working on this array.
+	 * Note that this is not an inline array because that has implications for heap
+	 * fragmentation (the array is exactly 16K, or exactly 4 bytes for a "monoblock"),
+	 * CPU caches and/or optimizability of algorithms working on this array.
 	 */
-	MapNode *const data; // of `nodecount` elements
+	MapNode *data = nullptr;
 
 	// provides the item and node definitions
 	IGameDef *m_gamedef;
@@ -651,6 +642,11 @@ private:
 	*/
 	float m_usage_timer = 0;
 
+	/*
+	 * For "monoblocks", the whole block is filled with the same node, only this node is stored.
+	 * (For reduced memory usage)
+	 */
+	bool m_is_mono_block;
 public:
 	//// ABM optimizations ////
 	// True if we never want to cache content types for this block
