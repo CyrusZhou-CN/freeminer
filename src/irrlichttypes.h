@@ -8,7 +8,6 @@
 #include <irrTypes.h>
 #include "config.h"
 
-using namespace irr;
 
 #define S8_MIN  INT8_MIN
 #define S16_MIN INT16_MIN
@@ -30,14 +29,14 @@ using namespace irr;
 #define POS_MAX INT32_MAX
 
 // Node position
-using pos_t = irr::s32;
+using pos_t = s32;
 
 // Block position.
-using bpos_t = irr::s32;
+using bpos_t = s32;
 
 #else
 #define POS_MIN INT16_MIN
 #define POS_MAX INT16_MAX
-using pos_t = irr::s16;
-using bpos_t = irr::s16;
+using pos_t = s16;
+using bpos_t = s16;
 #endif
