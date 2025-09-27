@@ -78,10 +78,17 @@ v3pos_t check_v3pos(lua_State *L, int index);
 v3opos_t check_v3o(lua_State *L, int index);
 v3opos_t checkOposPos(lua_State *L, int index);
 
+// TODO: some day we should figure out the type-checking situation so it's done
+// everywhere. (right now {x=true, y=false} as v2f is {0,0} with no warning)
+
+/// @warning relaxed type-checking, prefer `check_v3f`.
 v3f read_v3f(lua_State *L, int index);
 v3opos_t read_v3o(lua_State *L, int index);
+/// @warning relaxed type-checking, prefer `check_v2f`.
 v2f read_v2f(lua_State *L, int index);
+/// @warning relaxed type-checking
 v2s16 read_v2s16(lua_State *L, int index);
+/// @warning relaxed type-checking
 v2s32 read_v2s32(lua_State *L, int index);
 inline v2pos_t read_v2pos(lua_State *L, int index) {
 	#if USE_POS32
@@ -90,9 +97,14 @@ inline v2pos_t read_v2pos(lua_State *L, int index) {
 	return read_v2s16(L, index);
 	#endif
 }
+/// @warning relaxed type-checking, prefer `check_v3s16`.
+v3s16 read_v3s16(lua_State *L, int index);
+v3s32 read_v3s32(lua_State *L, int index);
+v3pos_t read_v3pos(lua_State *L, int index);
+
 video::SColor read_ARGB8(lua_State *L, int index);
 bool read_color(lua_State *L, int index, video::SColor *color);
-bool is_color_table (lua_State *L, int index);
+bool is_color_table(lua_State *L, int index);
 
 /**
  * Read a floating-point axis-aligned box from Lua.
@@ -107,9 +119,6 @@ bool is_color_table (lua_State *L, int index);
  */
 aabb3f read_aabb3f(lua_State *L, int index, f32 scale);
 
-v3s16 read_v3s16(lua_State *L, int index);
-v3s32 read_v3s32(lua_State *L, int index);
-v3pos_t read_v3pos(lua_State *L, int index);
 std::vector<aabb3f> read_aabb3f_vector  (lua_State *L, int index, f32 scale);
 size_t read_stringlist(lua_State *L, int index,
 		std::vector<std::string> *result);
@@ -142,9 +151,6 @@ void push_v3f(lua_State *L, v3d p);
 void push_v2f(lua_State *L, v2f p);
 void push_aabb3f_vector(lua_State *L, const std::vector<aabb3f> &boxes,
 		f32 divisor = 1.0f);
-
-void warn_if_field_exists(lua_State *L, int table, const char *fieldname,
-		std::string_view name, std::string_view message);
 
 size_t write_array_slice_float(lua_State *L, int table_index, float *data,
 		v3u16 data_size, v3u16 slice_offset, v3u16 slice_size);
