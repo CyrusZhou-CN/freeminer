@@ -465,8 +465,10 @@ void MapgenEarth::generateBuildings()
 weather::heat_t MapgenEarth::calcBlockHeat(const v3pos_t &p, uint64_t seed,
 		float timeofday, float totaltime, bool use_weather)
 {
+#if USE_OSMIUM
 	const auto ll = pos_to_ll(p);
 	const auto tile = osmium::geom::Tile(3, osmium::Location(ll.lon, ll.lat));
+#endif
 	return m_emerge->biomemgr->calcBlockHeat(p, seed, timeofday, totaltime, use_weather);
 }
 
