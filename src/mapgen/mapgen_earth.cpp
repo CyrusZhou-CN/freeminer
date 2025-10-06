@@ -23,34 +23,37 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdlib>
 #include <memory>
 #include <mutex>
-#include <osmium/geom/tile.hpp>
 #include <sstream>
 #include <string>
 #include <system_error>
 
 #include "debug/dump.h"
+#include "emerge.h"
 #include "filesys.h"
 #include "irr_v2d.h"
+#include "irr_v3d.h"
 #include "irrlichttypes.h"
+#include "log_types.h"
+#include "log.h"
+#include "map.h"
+#include "mapblock.h"
+#include "mapgen_earth.h"
 #include "mapgen/earth/hgt.h"
 #include "mapgen/earth/http.h"
-#include "mapgen_earth.h"
-#include "voxel.h"
-#include "mapblock.h"
 #include "mapnode.h"
-#include "map.h"
-#include "nodedef.h"
-#include "voxelalgorithms.h"
-#include "settings.h"
-#include "emerge.h"
-#include "serverenvironment.h"
 #include "mg_biome.h"
-#include "log_types.h"
+#include "nodedef.h"
+#include "serverenvironment.h"
+#include "settings.h"
+#include "voxel.h"
+#include "voxelalgorithms.h"
 #if USE_OSMIUM
+#include "earth/osmium-inl.h"
 #include <filesystem>
 #include <osmium/area/assembler.hpp>
 #include <osmium/area/multipolygon_manager.hpp>
 #include <osmium/dynamic_handler.hpp>
+#include <osmium/geom/tile.hpp>
 #include <osmium/handler/node_locations_for_ways.hpp>
 #include <osmium/index/map/sparse_mem_array.hpp>
 #include <osmium/io/file.hpp>
@@ -59,9 +62,6 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include <osmium/osm/node.hpp>
 #include <osmium/osm/way.hpp>
 #include <osmium/tags/tags_filter.hpp>
-
-#include "earth/osmium-inl.h"
-
 #endif
 std::unique_ptr<maps_holder_t> MapgenEarth::maps_holder;
 
