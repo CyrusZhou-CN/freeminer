@@ -27,11 +27,11 @@ public:
 
 	~DummyMap() = default;
 
-	void fill(v3s16 bpmin, v3s16 bpmax, MapNode n)
+	void fill(v3bpos_t bpmin, v3bpos_t bpmax, MapNode n)
 	{
-		for (s16 z = bpmin.Z; z <= bpmax.Z; z++)
-		for (s16 x = bpmin.X; x <= bpmax.X; x++)
-		for (s16 y = bpmin.Y; y <= bpmax.Y; y++) {
+		for (bpos_t z = bpmin.Z; z <= bpmax.Z; z++)
+		for (bpos_t x = bpmin.X; x <= bpmax.X; x++)
+		for (bpos_t y = bpmin.Y; y <= bpmax.Y; y++) {
 			MapBlock *block = getBlockNoCreateNoEx({x, y, z});
 			if (block) {
 				for (s16 zn=0; zn < MAP_BLOCKSIZE; zn++)
