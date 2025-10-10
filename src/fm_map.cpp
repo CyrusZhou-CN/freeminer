@@ -375,7 +375,7 @@ weather::humidity_t ServerMap::updateBlockHumidity(ServerEnvironment *env,
 int ServerMap::getSurface(const v3pos_t &basepos, int searchup, bool walkable_only)
 {
 
-	s16 max = MYMIN(searchup + basepos.Y, 0x7FFF);
+	pos_t max = MYMIN(searchup + basepos.Y, 0x7FFF);
 
 	MapNode last_node = getNode(basepos);
 	MapNode node = last_node;
@@ -1329,7 +1329,7 @@ bool ServerMap::propagateSunlight(
 }
 //#endif
 
-void ServerMap::lighting_modified_add(const v3pos_t &pos, int range)
+void ServerMap::lighting_modified_add(const v3bpos_t &pos, int range)
 {
 	MutexAutoLock lock(m_lighting_modified_mutex);
 	if (m_lighting_modified_blocks.contains(pos)) {
@@ -1414,7 +1414,7 @@ MapNode Map::getNodeNoEx(v3pos_t p) {
  * Get the ground level by searching for a non CONTENT_AIR node in a column from top to
  * bottom
  */
-s16 ServerMap::findGroundLevel(v2pos_t p2d, bool cacheBlocks)
+pos_t ServerMap::findGroundLevel(v2pos_t p2d, bool cacheBlocks)
 {
 
 	pos_t level;

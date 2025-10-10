@@ -334,8 +334,8 @@ void ServerMap::finishBlockMake(BlockMakeData *data,
 	   if (save_generated_block)		
 		block->raiseModified(MOD_STATE_WRITE_NEEDED,
 			MOD_REASON_EXPIRE_IS_AIR, false);
-       else
-        block->setLightingComplete(0);
+
+		block->setLightingComplete(0);
 	}
 
 	ServerEnvironment *senv = &((Server *)m_gamedef)->getEnv();
