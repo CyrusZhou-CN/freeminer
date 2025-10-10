@@ -210,7 +210,7 @@ public:
 	// Takes cache into account
 	// If deleted sector is in sector cache, clears cache
 /*
-	void deleteSectors(const std::vector<v2s16> &list);
+	void deleteSectors(const std::vector<v2bpos_t> &list);
 */
 
 	// For debug printing. Prints "Map: ", "ServerMap: " or "ClientMap: "

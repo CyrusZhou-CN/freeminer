@@ -70,7 +70,7 @@ public:
 	//returns basepos.y -1 if no surface has been found
 	// (due to limited data range of basepos.y this will always give a unique
 	// return value as long as minetest is compiled at least on 32bit architecture)
-	//int getSurface(v3s16 basepos, int searchup, bool walkable_only);
+	//int getSurface(v3pos_t basepos, int searchup, bool walkable_only);
 	virtual int getSurface(const v3pos_t &basepos, int searchup, bool walkable_only);
 	/*
 	{
@@ -110,7 +110,7 @@ public:
 	void prepareBlock(MapBlock *block);
 
 	// Helper for placing objects on ground level
-	s16 findGroundLevel(v2pos_t p2d, bool cacheBlocks);
+	pos_t findGroundLevel(v2pos_t p2d, bool cacheBlocks);
 	MapBlockPtr emergeBlockPtr(v3bpos_t p, bool create_blank=false) override;
 
 	static std::atomic_uint time_life;

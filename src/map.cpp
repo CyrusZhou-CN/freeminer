@@ -73,7 +73,7 @@ void Map::dispatchEvent(const MapEditEvent &event)
 }
 
 /*
-MapSector * Map::getSectorNoGenerateNoLock(v2s16 p)
+MapSector * Map::getSectorNoGenerateNoLock(v2bpos_t p)
 {
 	if(m_sector_cache != NULL && p == m_sector_cache_p){
 		MapSector * sector = m_sector_cache;
@@ -478,7 +478,7 @@ void Map::unloadUnreferencedBlocks(std::vector<v3bpos_t> *unloaded_blocks)
 }
 
 #if WTF
-void Map::deleteSectors(const std::vector<v2s16> &sectorList)
+void Map::deleteSectors(const std::vector<v2bpos_t> &sectorList)
 {
 	for (v2bpos_t j : sectorList) {
 		MapSector *sector = m_sectors[j];

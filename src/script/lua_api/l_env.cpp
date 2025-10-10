@@ -1285,9 +1285,9 @@ int ModApiEnv::l_emerge_area(lua_State *L)
 		state->origin       = getScriptApiBase(L)->getOrigin();
 	}
 
-	for (s16 z = bpmin.Z; z <= bpmax.Z; z++)
-	for (s16 y = bpmin.Y; y <= bpmax.Y; y++)
-	for (s16 x = bpmin.X; x <= bpmax.X; x++) {
+	for (bpos_t z = bpmin.Z; z <= bpmax.Z; z++)
+	for (bpos_t y = bpmin.Y; y <= bpmax.Y; y++)
+	for (bpos_t x = bpmin.X; x <= bpmax.X; x++) {
 		emerge->enqueueBlockEmergeEx(v3bpos_t(x, y, z), PEER_ID_INEXISTENT,
 			BLOCK_EMERGE_ALLOW_GEN | BLOCK_EMERGE_FORCE_QUEUE, callback, state);
 	}

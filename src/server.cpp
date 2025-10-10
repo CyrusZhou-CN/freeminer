@@ -4552,7 +4552,7 @@ v3f Server::findSpawnPos()
 
 			/*MT :
 					// Get spawn level at point
-					s16 spawn_level = m_emerge->getSpawnLevelAtPoint(nodepos2d);
+					pos_t spawn_level = m_emerge->getSpawnLevelAtPoint(nodepos2d);
 					// Continue if MAX_MAP_GENERATION_LIMIT was returned by
 					// the mapgen to signify an unsuitable spawn position
 					if (spawn_level == MAX_MAP_GENERATION_LIMIT)

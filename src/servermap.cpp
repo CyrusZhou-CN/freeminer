@@ -341,9 +341,9 @@ void ServerMap::finishBlockMake(BlockMakeData *data,
 
 	ServerEnvironment *senv = &((Server *)m_gamedef)->getEnv();
 	// Note: this does not apply to the extra border area
-	for (s16 x = bpmin.X; x <= bpmax.X; x++)
-	for (s16 z = bpmin.Z; z <= bpmax.Z; z++)
-	for (s16 y = bpmin.Y; y <= bpmax.Y; y++) {
+	for (pos_t x = bpmin.X; x <= bpmax.X; x++)
+	for (pos_t z = bpmin.Z; z <= bpmax.Z; z++)
+	for (pos_t y = bpmin.Y; y <= bpmax.Y; y++) {
 		v3pos_t p(x, y, z);
 		auto block = getBlockNoCreateNoEx(p, false, true);
 		if (!block)
