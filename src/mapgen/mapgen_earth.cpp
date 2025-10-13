@@ -21,11 +21,13 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cmath>
 #include <cstdlib>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <system_error>
+#include <tuple>
 
 #include "debug/dump.h"
 #include "emerge.h"
@@ -354,111 +356,141 @@ const auto floor01 = [](const auto &v, const float &div) { return floor(v * div)
 
 //const auto ceil01 = [](const auto &v, const float &div) { return ceil(v * div) / div; };
 
-const auto make_bbox = [](auto tc, auto div) {
-	const auto lat_dec01 = floor01(tc.lat, div);
-	const auto lon_dec01 = floor01(tc.lon, div);
-	const auto lat_end_dec01 = floor01(tc.lat + (1.0 / div), div);
-	const auto lon_end_dec01 = floor01(tc.lon + (1.0 / div), div);
+auto bbox_to_string(const auto &start, const auto &end)
+{
 	std::stringstream bboxs;
-	bboxs << lon_dec01 << "," << lat_dec01 << "," << lon_end_dec01 << ","
-		  << lat_end_dec01;
-	auto bbox = bboxs.str();
-	return bbox;
+	bboxs << start.lon << "," << start.lat << "," << end.lon << "," << end.lat;
+	return bboxs.str();
+}
+
+auto make_bbox(const auto &tc, auto div)
+{
+	const ll start{floor01(tc.lat, div), floor01(tc.lon, div)};
+	const ll end{floor01(tc.lat + (1.0 / div), div), floor01(tc.lon + (1.0 / div), div)};
+	const auto bbox = bbox_to_string(start, end);
+	return std::make_tuple(bbox, start, end);
 };
 
 void MapgenEarth::generateBuildings()
 {
 
 #if USE_OSMIUM
+	TimeTaker timer("earth buildings");
+	std::string use_file;
+	try {
 
-	//#define FILE_INCLUDED 1
-	//#include "earth/osmium-inl.h"
-	const auto tc = pos_to_ll(node_min.X, node_min.Z);
-	const auto tc_max = pos_to_ll(node_max.X, node_max.Z);
-	static const auto folder = porting::path_cache + DIR_DELIM + "earth";
-	const auto lat_dec = lat_start(tc.lat);
-	const auto lon_dec = lon_start(tc.lon);
+		//#define FILE_INCLUDED 1
+		//#include "earth/osmium-inl.h"
+		const auto tc = pos_to_ll(node_min.X, node_min.Z);
+		const auto tc_max = pos_to_ll(node_max.X, node_max.Z);
+		static const auto folder = porting::path_cache + DIR_DELIM + "earth";
+		const auto lat_dec = lat_start(tc.lat);
+		const auto lon_dec = lon_start(tc.lon);
 
-	static const auto timestamp = []() {
-		std::string ts = "latest";
-		g_settings->getNoEx("earth_movisda_timestamp", ts);
-		return ts;
-	}();
-	char buff[100];
-	std::snprintf(buff, sizeof(buff), "%c%02d%c%03d-%s.osm.pbf", lat_dec >= 0 ? 'N' : 'S',
-			abs(lat_dec), lon_dec >= 0 ? 'W' : 'E', abs(lon_dec), timestamp.c_str());
-	std::string filename = buff;
-	const auto base_full_name = folder + DIR_DELIM + filename;
-	if (!std::filesystem::exists(base_full_name)) {
-		const auto lock = std::lock_guard(maps_holder->osm_http_lock);
+		static const auto timestamp = []() {
+			std::string ts = "latest";
+			g_settings->getNoEx("earth_movisda_timestamp", ts);
+			return ts;
+		}();
+		char buff[100];
+		std::snprintf(buff, sizeof(buff), "%c%02d%c%03d-%s.osm.pbf",
+				lat_dec >= 0 ? 'N' : 'S', abs(lat_dec), lon_dec >= 0 ? 'W' : 'E',
+				abs(lon_dec), timestamp.c_str());
+		std::string filename = buff;
+		const auto base_full_name = folder + DIR_DELIM + filename;
 		if (!std::filesystem::exists(base_full_name)) {
-			const auto url = "https://osm.download.movisda.io/grid/" + filename;
-			multi_http_to_file({url}, base_full_name);
+			const auto lock = std::lock_guard(maps_holder->osm_http_lock);
+			if (!std::filesystem::exists(base_full_name)) {
+				const auto url = "https://osm.download.movisda.io/grid/" + filename;
+				multi_http_to_file({url}, base_full_name);
+			}
 		}
-	}
 
-	std::string use_file = base_full_name;
-	std::string bbox;
-	{
-		const auto try_extract = [](const auto &path_name, const auto &bbox,
-										 const auto &filename) {
-			if (std::filesystem::exists(filename)) {
-				return true;
-			}
-			const auto lock = std::lock_guard(maps_holder->osm_extract_lock);
-			if (std::filesystem::exists(filename)) {
-				return true;
-			}
+		use_file = base_full_name;
+		std::string bbox;
+		{
+			const auto try_extract = [](const auto &path_name, const auto &bbox,
+											 const auto &filename) {
+				if (std::filesystem::exists(filename)) {
+					return true;
+				}
+				const auto lock = std::lock_guard(maps_holder->osm_extract_lock);
+				if (std::filesystem::exists(filename)) {
+					return true;
+				}
 
-			std::stringstream cmd;
-			// TODO: use osmium tool as lib
-			cmd << "osmium extract --output-format pbf --strategy smart " << "--bbox "
-				<< bbox << " --output " << filename << ".tmp" << " " << path_name;
-			exec_to_string(cmd.str());
-			if (!std::filesystem::exists(filename + ".tmp")) {
-				return false;
-			}
+				std::stringstream cmd;
+				// TODO: use osmium tool as lib
+				cmd << "osmium extract --output-format pbf --strategy smart " << "--bbox "
+					<< bbox << " --output " << filename << ".tmp" << " " << path_name;
+				exec_to_string(cmd.str());
+				if (!std::filesystem::exists(filename + ".tmp")) {
+					return false;
+				}
 
-			std::error_code error_code;
-			std::filesystem::rename(filename + ".tmp", filename, error_code);
-			return !error_code.value();
-		};
-
-		for (auto div = 10; div <= 1000; div *= 10) {
-			std::error_code ec;
-			const auto size = std::filesystem::file_size(use_file, ec);
-			if (ec || size < 40000) {
-				break;
+				std::error_code error_code;
+				std::filesystem::rename(filename + ".tmp", filename, error_code);
+				return !error_code.value();
 			};
 
-			const auto bbox_next = make_bbox(tc, div);
-			auto filename_next = folder + DIR_DELIM + "extract." + std::to_string(div) +
-								 "." + bbox_next + ".osm.pbf";
-			if (!try_extract(use_file, bbox_next, filename_next)) {
-				break;
+			for (auto div = 10; div <= 10000; div *= 10) {
+				std::error_code ec;
+				const auto size = std::filesystem::file_size(use_file, ec);
+				if (ec) {
+					break;
+				};
+
+				auto [bbox_next, bb_start, bb_end] = make_bbox(tc, div);
+				const auto bbox_to_filename = [](const auto &bbox_next, const auto div) {
+					auto filename_next = folder + DIR_DELIM + "extract." +
+										 std::to_string(div) + "." + bbox_next +
+										 ".osm.pbf";
+					return filename_next;
+				};
+				auto filename_next = bbox_to_filename(bbox_next, div);
+
+				if (!(bb_start.lat <= tc.lat && bb_start.lon <= tc.lon &&
+							bb_end.lat >= tc_max.lat && bb_end.lon >= tc_max.lon)) {
+
+					const auto bbox_exact = bbox_to_string(tc, tc_max);
+					const auto filename_exact = bbox_to_filename(bbox_exact, 100000);
+					filename_next = filename_exact;
+					bbox_next = bbox_exact;
+				}
+
+				if (!try_extract(use_file, bbox_next, filename_next)) {
+					break;
+				}
+				if (div >= 1000) {
+					maps_holder->files_to_delete.emplace_back(filename_next);
+				}
+				use_file = filename_next;
+				bbox = bbox_next;
 			}
-			use_file = filename_next;
-			bbox = bbox_next;
 		}
-	}
 
-	if (std::filesystem::exists(use_file)) {
-		const auto osm = std::make_shared<hdl>(this, use_file);
-		const auto lock = maps_holder->osm_bbox.lock_unique_rec();
-		if (!maps_holder->osm_bbox.contains(bbox)) {
-			maps_holder->osm_bbox.emplace(bbox, osm);
+		if (std::filesystem::exists(use_file) && std::filesystem::file_size(use_file)) {
+			if (!maps_holder->osm_bbox.contains(bbox)) {
+				const auto osm = std::make_shared<hdl>(this, use_file);
+				const auto lock = maps_holder->osm_bbox.lock_unique_rec();
+				if (!maps_holder->osm_bbox.contains(bbox)) {
+					maps_holder->osm_bbox.emplace(bbox, osm);
+				}
+			}
 		}
+
+		if (const auto &hdlr = maps_holder->osm_bbox.get(bbox)) {
+			hdlr->apply(this);
+		}
+	} catch (const std::exception &ex) {
+		warningstream << node_min << " : " << ex.what() << " file=" << use_file << "\n";
 	}
 
-	if (const auto &hdlr = maps_holder->osm_bbox.get(bbox)) {
-		hdlr->apply(this);
-	}
-
-	verbosestream << "Buildings stat: " << node_min << " set=" << stat.set
-				  << " miss=" << stat.miss << " level=" << stat.level
-				  << " check=" << stat.check << " fill=" << stat.fill << "\n";
+	verbosestream << "Buildings stat: " << node_min << " .. " << node_max
+				  << " set=" << stat.set << " miss=" << stat.miss
+				  << " level=" << stat.level << " check=" << stat.check
+				  << " fill=" << stat.fill << " per=" << timer.getTimerTime() << "\n";
 	stat.clean();
-
 #endif
 }
 
@@ -478,3 +510,11 @@ weather::humidity_t MapgenEarth::calcBlockHumidity(const v3pos_t &p, uint64_t se
 	return m_emerge->biomemgr->calcBlockHumidity(
 			p, seed, timeofday, totaltime, use_weather);
 }
+
+maps_holder_t::~maps_holder_t()
+{
+	for (const auto &file : files_to_delete) {
+		std::error_code ec;
+		std::filesystem::remove(file, ec);
+	}
+};
