@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <cstdlib>
+#include <exception>
 #include <vector>
 #include "irr_v3d.h"
 #include "irrlichttypes.h"
@@ -188,44 +189,51 @@ public:
 
 	void way(const osmium::Way &way)
 	{
-		arnis::Ground ground;
-		ground.mg = mg;
-		arnis::WorldEditor editor;
-		editor.mg = mg;
-		editor.ground = &ground;
-		std::vector<arnis::ProcessedElement> v;
-		arnis::ProcessedWay w;
-		for (const auto &t : way.tags()) {
-			w.tags.emplace(t.key(), t.value());
+		try {
+			arnis::Ground ground;
+			ground.mg = mg;
+			arnis::WorldEditor editor;
+			editor.mg = mg;
+			editor.ground = &ground;
+			std::vector<arnis::ProcessedElement> v;
+			arnis::ProcessedWay w;
+			for (const auto &t : way.tags()) {
+				w.tags.emplace(t.key(), t.value());
+			}
+			for (const auto &n : way.nodes()) {
+				arnis::ProcessedNode pn;
+				pn.tags = w.tags;
+				const auto [x, y] = editor.node_to_xz(n);
+				pn.x = x;
+				pn.z = y;
+				pn.id = w.id;
+				w.nodes.emplace_back(pn);
+			}
+			v.emplace_back(w);
+			arnis::generate_world(editor, v);
+		} catch (const std::exception &ex) {
+			DUMP(ex.what());
 		}
-		for (const auto &n : way.nodes()) {
-			arnis::ProcessedNode pn;
-			pn.tags = w.tags;
-			const auto [x, y] = editor.node_to_xz(n);
-			pn.x = x;
-			pn.z = y;
-			pn.id = w.id;
-			w.nodes.emplace_back(pn);
-		}
-		v.emplace_back(w);
-		arnis::generate_world(editor, v);
 	}
 
 	void relation(const osmium::Relation &relation)
 	{
-
-		arnis::Ground ground;
-		ground.mg = mg;
-		arnis::WorldEditor editor;
-		editor.mg = mg;
-		editor.ground = &ground;
-		std::vector<arnis::ProcessedElement> v;
-		for (const auto &r : relation) {
+		try {
+			arnis::Ground ground;
+			ground.mg = mg;
+			arnis::WorldEditor editor;
+			editor.mg = mg;
+			editor.ground = &ground;
+			std::vector<arnis::ProcessedElement> v;
+			for (const auto &r : relation) {
+			}
+			for (const auto &sn : relation.subitems<osmium::Way>()) {
+				way(sn);
+			}
+			arnis::generate_world(editor, v);
+		} catch (const std::exception &ex) {
+			DUMP(ex.what());
 		}
-		for (const auto &sn : relation.subitems<osmium::Way>()) {
-			way(sn);
-		}
-		arnis::generate_world(editor, v);
 	}
 };
 class hdl : public handler_i
@@ -239,10 +247,7 @@ class hdl : public handler_i
 	MyHandler handler;
 
 public:
-	hdl(MapgenEarth *mg, const std::string &path_name) :
-			path_name{path_name}
-	{
-	}
+	hdl(MapgenEarth *mg, const std::string &path_name) : path_name{path_name} {}
 
 	~hdl() = default;
 

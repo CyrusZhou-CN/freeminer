@@ -31,6 +31,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include "porting.h"
 #include "filesys.h"
 #include "threading/concurrent_map.h"
+#include "threading/concurrent_vector.h"
 
 typedef core::vector2d<double> v2d;
 
@@ -65,7 +66,7 @@ class MapgenEarth;
 class handler_i
 {
 public:
-	virtual void apply(MapgenEarth*) = 0;
+	virtual void apply(MapgenEarth *) = 0;
 };
 
 struct maps_holder_t
@@ -76,6 +77,8 @@ struct maps_holder_t
 	concurrent_shared_map<std::string, osm_ptr> osm_bbox;
 	std::mutex osm_http_lock;
 	std::mutex osm_extract_lock;
+	concurrent_shared_vector<std::string> files_to_delete;
+	~maps_holder_t();
 };
 
 class MapgenEarth : public MapgenV7
