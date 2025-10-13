@@ -262,6 +262,9 @@ struct Ground
 	{
 		++mg->stat.level;
 		const auto h = mg->get_height(pos.X, pos.Y);
+		if (h < 1) {
+			return 1;
+		}
 		return h;
 	}
 };

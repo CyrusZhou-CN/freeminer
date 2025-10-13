@@ -80,9 +80,18 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 					const v3pos_t rpos(x, y, z);
 					const v3bpos_t nbpos(bpos_aligned.X + (x << step),
 							bpos_aligned.Y + (y << step), bpos_aligned.Z + (z << step));
-					auto nblock = load_block(smap, dbase, nbpos);
+					MapBlockPtr nblock;
+					if (!step) {
+						const auto block = smap->getBlock(nbpos);
+						if (block && block->isGenerated()) {
+							nblock = block;
+						}
+					}
 					if (!nblock) {
-						continue;
+						nblock = load_block(smap, dbase, nbpos);
+						if (!nblock || !nblock->isGenerated()) {
+							continue;
+						}
 					}
 					if (const auto ts = nblock->getActualTimestamp(); ts > timestamp)
 						timestamp = ts;
@@ -136,7 +145,7 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 					std::vector<uint8_t> top_light_night;
 					std::unordered_map<content_t, MapNode> nodes;
 
-					// TODO: tune block selector
+			// TODO: tune block selector
 
 #if 0
 // Simple grid aligned
@@ -156,7 +165,8 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 								 v3pos_t{1, 0, 1},
 								 v3pos_t{1, 1, 1},
 						 }) {
-						const auto &n = block->getNodeNoLock(lpos + dir);
+						const auto p = lpos + dir;
+						const auto &n = block->getNodeNoLock(p);
 						const auto c = n.getContent();
 						if (c == CONTENT_IGNORE) {
 							continue;

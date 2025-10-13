@@ -7,6 +7,7 @@
 #include "client/mapblock_mesh.h"
 #include "clientmap.h"
 #include "emerge.h"
+#include "fm_weather.h"
 #include "fm_world_merge.h"
 #include "irr_v3d.h"
 #include "log.h"
@@ -232,12 +233,12 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 			block->fill({block->content_only, block->content_only_param1,
 					block->content_only_param2});
 		}
-		s32 h = 0; // for convert to atomic
-		packet[TOCLIENT_BLOCKDATA_HEAT].convert(h);
-		block->heat = h;
-		h = 0;
-		packet[TOCLIENT_BLOCKDATA_HUMIDITY].convert(h);
-		block->humidity = h;
+		weather::heat_t heat = 0; // for convert to atomic
+		packet[TOCLIENT_BLOCKDATA_HEAT].convert(heat);
+		block->heat = heat;
+		weather::humidity_t humidity = 0;
+		packet[TOCLIENT_BLOCKDATA_HUMIDITY].convert(humidity);
+		block->humidity = humidity;
 	}
 
 	if (m_localdb && !is_simple_singleplayer_game) {

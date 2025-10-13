@@ -352,6 +352,7 @@ void ServerMap::finishBlockMake(BlockMakeData *data,
 
         updateBlockHeat(senv, p * MAP_BLOCKSIZE, block);
         updateBlockHumidity(senv, p * MAP_BLOCKSIZE, block);
+   	    changed_blocks_for_merge.emplace(p);
 
 		// Set timestamp to ensure correct application of LBMs and other stuff
 		block->setTimestampNoChangedFlag(now);

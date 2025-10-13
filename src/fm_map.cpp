@@ -513,6 +513,8 @@ u32 Map::timerUpdate(float uptime, float unload_timeout, s32 max_loaded_blocks,
 				}
 				if (block->getUsageTimer() > unload_timeout) { // block->refGet() <= 0 &&
 					const v3bpos_t p = block->getPos();
+					changed_blocks_for_merge.emplace(p);
+
 					// infostream<<" deleting block p="<<p<<"
 					// ustimer="<<block->getUsageTimer() <<" to="<< unload_timeout<<"
 					// inc="<<(uptime - block->m_uptime_timer_last)<<"
