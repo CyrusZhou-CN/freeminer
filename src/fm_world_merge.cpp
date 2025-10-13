@@ -228,21 +228,26 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 	// TODO: skip full air;
 
 	if (farlights) {
-		int lights_count = 0, lights_used = 0;
-		constexpr auto some_magick_thinner_const = 3; // more -> less far ligts
+		size_t lights_count = 0;
+		// size_t lights_used = 0;
+		constexpr auto some_magick_thinner_const = 2; // more -> less far ligts
+		constexpr auto min_no_skip_ligts =
+				2; // do not skip this amount lights on block << farstep
 		for (const auto &[bpos, block] : blocks) {
 			if (!block) {
 				continue;
 			}
+			size_t lights_in_block = 0;
 			// TODO: apply some smart? filtering here
-			block_up->m_light_points.insert(
-					block->m_light_points.begin(), block->m_light_points.end());
+			// block_up->m_light_points.insert(block->m_light_points.begin(), block->m_light_points.end());
 			for (const auto &lp : block->m_light_points) {
 				++lights_count;
-				if (lights_count % (some_magick_thinner_const * (16 - lp.second))) {
+				++lights_in_block;
+				if (lights_in_block > (min_no_skip_ligts << step) &&
+						(lights_count % (some_magick_thinner_const * (16 - lp.second)))) {
 					continue;
 				}
-				++lights_used;
+				//++lights_used;
 				block_up->m_light_points.emplace(lp);
 			}
 
@@ -252,6 +257,7 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 	if (!not_empty_nodes) {
 		return;
 	}
+
 	block_up->setGenerated(true);
 	ServerMap::saveBlock(block_up.get(), dbase_up, m_map_compression_level);
 }
