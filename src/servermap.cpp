@@ -321,7 +321,8 @@ void ServerMap::finishBlockMake(BlockMakeData *data,
 	}
 
 	for (auto &changed_block : *changed_blocks) {
-		MapBlock *block = changed_block.second;
+		const auto block = getBlock(changed_block.first); // very bad, changed_block should contain MapBlockPtr
+		//MapBlock *block = changed_block.second;
 		if (!block)
 			continue;
 		/*
