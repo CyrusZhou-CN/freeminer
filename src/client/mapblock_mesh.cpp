@@ -4,6 +4,7 @@
 
 #include "mapblock_mesh.h"
 #include "CMeshBuffer.h"
+#include "EPrimitiveTypes.h"
 #include "client.h"
 #include "client/clientmap.h"
 #include "mapblock.h"
@@ -746,6 +747,7 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 
 		if (static const auto farlights = g_settings->getBool("farlights"); farlights && far_step) {
 			scene::SMeshBuffer *buffer = new scene::SMeshBuffer();
+			buffer->PrimitiveType = scene::EPT_POINTS;
 			buffer->Material.PointCloud = true;
 			buffer->Material.BackfaceCulling = false;
 			buffer->Material.FogEnable = true;
@@ -789,6 +791,7 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 						}
 					}
 			mesh->addMeshBuffer(buffer);
+			buffer->drop();
 		}
 
 		if (mesh) {
