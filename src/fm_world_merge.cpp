@@ -184,10 +184,16 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 							top_c[c] += 4;
 						}
 
-						if (const auto light_night = n.getLightRaw(
-									LIGHTBANK_NIGHT, ndef->getLightingFlags(n));
+						const auto &lf = ndef->getLightingFlags(c);
+						if (const auto light_night = n.getLightRaw(LIGHTBANK_NIGHT, lf);
 								light_night) {
 							top_light_night.emplace_back(light_night);
+						}
+						if (farlights && !step && (lf.light_source)) {
+							const auto plpos =
+									block->getPosRelative() + p; //pos_in_block;
+							const auto &[i, r] = block->m_light_points.try_emplace(
+									plpos, lf.light_source);
 						}
 
 						nodes[c] = n;
@@ -220,6 +226,28 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 				}
 	}
 	// TODO: skip full air;
+
+	if (farlights) {
+		int lights_count = 0, lights_used = 0;
+		constexpr auto some_magick_thinner_const = 3; // more -> less far ligts
+		for (const auto &[bpos, block] : blocks) {
+			if (!block) {
+				continue;
+			}
+			// TODO: apply some smart? filtering here
+			block_up->m_light_points.insert(
+					block->m_light_points.begin(), block->m_light_points.end());
+			for (const auto &lp : block->m_light_points) {
+				++lights_count;
+				if (lights_count % (some_magick_thinner_const * (16 - lp.second))) {
+					continue;
+				}
+				++lights_used;
+				block_up->m_light_points.emplace(lp);
+			}
+
+		}
+	}
 
 	if (!not_empty_nodes) {
 		return;
