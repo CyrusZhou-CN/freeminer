@@ -70,7 +70,7 @@ size_t multi_http_to_file(const std::string &name, const std::vector<std::string
 
 	http_failed.insert(name);
 
-	warningstream
+	infostream
 			<< "Not found " << name << "\n"
 			<< "try to download manually: \n"
 			<< "curl -o " << path << " "
@@ -102,7 +102,7 @@ size_t multi_http_to_file(const std::vector<std::string> &links, const std::stri
 
 	http_failed.emplace(path);
 
-	warningstream
+	infostream
 			<< "Not found " << path << "\n"
 			<< "try to download manually: \n"
 			<< "curl -o " << path << " "

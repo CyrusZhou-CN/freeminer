@@ -250,7 +250,6 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 				//++lights_used;
 				block_up->m_light_points.emplace(lp);
 			}
-
 		}
 	}
 

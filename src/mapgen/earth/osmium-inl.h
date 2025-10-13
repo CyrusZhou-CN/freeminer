@@ -244,8 +244,6 @@ class hdl : public handler_i
 
 	const std::string path_name;
 
-	MyHandler handler;
-
 public:
 	hdl(MapgenEarth *mg, const std::string &path_name) : path_name{path_name} {}
 
@@ -275,10 +273,12 @@ public:
 		}
 
 		arnis::init(mg);
+
+		MyHandler handler;
+
 		handler.mg = mg;
 		osmium::apply(reader, cache, handler,
-				mp_manager.handler([&handler = this->handler](
-										   const osmium::memory::Buffer &area_buffer) {
+				mp_manager.handler([&handler](const osmium::memory::Buffer &area_buffer) {
 					osmium::apply(area_buffer, handler);
 				}));
 	}
