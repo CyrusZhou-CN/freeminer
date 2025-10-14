@@ -3,23 +3,26 @@
 #include <future>
 #include <memory>
 #include "client.h"
-#include "fm_far_calc.h"
 #include "client/mapblock_mesh.h"
 #include "clientmap.h"
 #include "emerge.h"
+#include "filesys.h"
+#include "fm_far_calc.h"
 #include "fm_weather.h"
 #include "fm_world_merge.h"
 #include "irr_v3d.h"
 #include "log.h"
-#include "mapblock.h"
-#include "network/fm_networkprotocol.h"
-#include "server.h"
-#include "filesys.h"
 #include "map.h"
+#include "mapblock.h"
 #include "mapgen/mapgen.h"
+#include "network/fm_networkprotocol.h"
 #include "network/networkpacket.h"
+#include "server.h"
 #include "threading/lock.h"
 #include "util/directiontables.h"
+#include <atomic>
+#include <exception>
+#include <memory>
 
 void Client::updateMeshTimestampWithEdge(const v3bpos_t &blockpos)
 {
