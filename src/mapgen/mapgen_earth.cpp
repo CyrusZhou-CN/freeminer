@@ -394,7 +394,7 @@ void MapgenEarth::generateBuildings()
 		}();
 		char buff[100];
 		std::snprintf(buff, sizeof(buff), "%c%02d%c%03d-%s.osm.pbf",
-				lat_dec >= 0 ? 'N' : 'S', abs(lat_dec), lon_dec >= 0 ? 'W' : 'E',
+				lat_dec >= 0 ? 'N' : 'S', abs(lat_dec), lon_dec > 0 ? 'W' : 'E',
 				abs(lon_dec), timestamp.c_str());
 		std::string filename = buff;
 		const auto base_full_name = folder + DIR_DELIM + filename;
