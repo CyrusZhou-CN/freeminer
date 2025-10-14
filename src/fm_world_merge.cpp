@@ -66,8 +66,8 @@ WorldMerger::~WorldMerger()
 	merge_changed();
 }
 
-void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
-		const v3bpos_t &bpos_aligned, block_step_t step)
+WorldMerger::one_block_stat_t WorldMerger::merge_one_block(MapDatabase *dbase,
+		MapDatabase *dbase_up, const v3bpos_t &bpos_aligned, block_step_t step)
 {
 	const auto step_pow = 1;
 	const auto step_size = 1 << step_pow;
@@ -111,7 +111,7 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 			// actionstream << "s=" << step <<" at=" << block_up->getActualTimestamp() << " t=" << block_up->getTimestamp() <<  " myts=" << timestamp << "\n";
 			const auto up_ts = block_up->getActualTimestamp();
 			if (timestamp < up_ts + lazy_up) {
-				return;
+				return {};
 			}
 		}
 	}
@@ -229,10 +229,8 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 				}
 	}
 	// TODO: skip full air;
-
+	one_block_stat_t one_step_stat;
 	if (farlights) {
-		size_t lights_count = 0;
-		// size_t lights_used = 0;
 		constexpr auto some_magick_thinner_const = 2; // more -> less far ligts
 		constexpr auto min_no_skip_ligts =
 				2; // do not skip this amount lights on block << farstep
@@ -244,24 +242,25 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 			// TODO: apply some smart? filtering here
 			// block_up->m_light_points.insert(block->m_light_points.begin(), block->m_light_points.end());
 			for (const auto &lp : block->m_light_points) {
-				++lights_count;
+				++one_step_stat.lights_count;
 				++lights_in_block;
 				if (lights_in_block > (min_no_skip_ligts << step) &&
-						(lights_count % (some_magick_thinner_const * (16 - lp.second)))) {
+						(one_step_stat.lights_count %
+								(some_magick_thinner_const * (16 - lp.second)))) {
 					continue;
 				}
-				//++lights_used;
+				++one_step_stat.lights_used;
 				block_up->m_light_points.emplace(lp);
 			}
 		}
 	}
 
-	if (!not_empty_nodes) {
-		return;
+	if (not_empty_nodes) {
+		block_up->setGenerated(true);
+		ServerMap::saveBlock(block_up.get(), dbase_up, m_map_compression_level);
 	}
 
-	block_up->setGenerated(true);
-	ServerMap::saveBlock(block_up.get(), dbase_up, m_map_compression_level);
+	return one_step_stat;
 }
 
 bool WorldMerger::merge_one_step(
@@ -300,7 +299,7 @@ bool WorldMerger::merge_one_step(
 	size_t processed = 0;
 
 	const auto time_start = porting::getTimeMs();
-
+	WorldMerger::one_block_stat_t statz;
 	const auto printstat = [&]() {
 		const auto time = porting::getTimeMs();
 
@@ -310,6 +309,7 @@ bool WorldMerger::merge_one_step(
 				   << blocks_size
 				   //<< " blocks loaded " << m_server->getMap().m_blocks.size()
 				   << " processed " << processed << " per " << (time - time_start) / 1000
+				   << " lights" << statz.lights_used << "/" << statz.lights_count
 				   << " speed " << processed / (((time - time_start) / 1000) ?: 1)
 				   << '\n';
 	};
@@ -337,8 +337,7 @@ bool WorldMerger::merge_one_step(
 		g_profiler->add("Server: World merge blocks", 1);
 
 		try {
-
-			merge_one_block(dbase_current, dbase_up, bpos_aligned, step);
+			statz = merge_one_block(dbase_current, dbase_up, bpos_aligned, step);
 
 			if (!(cur_n % 10000)) {
 				printstat();
