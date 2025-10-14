@@ -299,7 +299,7 @@ bool WorldMerger::merge_one_step(
 	size_t processed = 0;
 
 	const auto time_start = porting::getTimeMs();
-	WorldMerger::one_block_stat_t statz;
+	WorldMerger::one_block_stat_t stat_step;
 	const auto printstat = [&]() {
 		const auto time = porting::getTimeMs();
 
@@ -309,7 +309,7 @@ bool WorldMerger::merge_one_step(
 				   << blocks_size
 				   //<< " blocks loaded " << m_server->getMap().m_blocks.size()
 				   << " processed " << processed << " per " << (time - time_start) / 1000
-				   << " lights" << statz.lights_used << "/" << statz.lights_count
+				   << " lights " << stat_step.lights_used << "/" << stat_step.lights_count
 				   << " speed " << processed / (((time - time_start) / 1000) ?: 1)
 				   << '\n';
 	};
@@ -337,7 +337,10 @@ bool WorldMerger::merge_one_step(
 		g_profiler->add("Server: World merge blocks", 1);
 
 		try {
-			statz = merge_one_block(dbase_current, dbase_up, bpos_aligned, step);
+			const auto stat_block =
+					merge_one_block(dbase_current, dbase_up, bpos_aligned, step);
+			stat_step.lights_count += stat_block.lights_count;
+			stat_step.lights_used += stat_block.lights_used;
 
 			if (!(cur_n % 10000)) {
 				printstat();
