@@ -185,11 +185,14 @@ void WorldMerger::merge_one_block(MapDatabase *dbase, MapDatabase *dbase_up,
 						}
 
 						const auto &lf = ndef->getLightingFlags(c);
+						const auto &cf = ndef->get(c);
+
 						if (const auto light_night = n.getLightRaw(LIGHTBANK_NIGHT, lf);
 								light_night) {
 							top_light_night.emplace_back(light_night);
 						}
-						if (farlights && !step && (lf.light_source)) {
+						// TODO: whats with lava?
+						if (farlights && !step && (lf.light_source) && !cf.isLiquid()) {
 							const auto plpos =
 									block->getPosRelative() + p; //pos_in_block;
 							const auto &[i, r] = block->m_light_points.try_emplace(
