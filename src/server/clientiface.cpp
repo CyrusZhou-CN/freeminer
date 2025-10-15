@@ -468,7 +468,7 @@ void RemoteClient::SetBlockNotSent(v3bpos_t p, bool low_priority)
 void RemoteClient::SetBlocksNotSent(const std::vector<v3bpos_t> &blocks, bool low_priority)
 {
 /*
-	for (v3s16 p : blocks) {
+	for (v3bpos_t p : blocks) {
 		SetBlockNotSent(p, low_priority);
 	}
 */

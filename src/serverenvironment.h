@@ -81,7 +81,7 @@ public:
 	}
 
 	// list of all active blocks
-	//std::set<v3s16> m_list;
+	//std::set<v3pos_t> m_list;
 	maybe_concurrent_set<v3pos_t> m_list;
 	// list of blocks for ABM processing
 	// subset of `m_list` that does not contain view cone affected blocks
