@@ -244,7 +244,7 @@ WorldMerger::one_block_stat_t WorldMerger::merge_one_block(MapDatabase *dbase,
 			for (const auto &lp : block->m_light_points) {
 				++one_step_stat.lights_count;
 				++lights_in_block;
-				if (lights_in_block > (min_no_skip_ligts << step) &&
+				if ((step > 3 || lights_in_block > (min_no_skip_ligts << step)) &&
 						(one_step_stat.lights_count %
 								(some_magick_thinner_const * (16 - lp.second)))) {
 					continue;
