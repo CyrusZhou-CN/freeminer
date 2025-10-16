@@ -29,6 +29,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include <system_error>
 #include <tuple>
 
+#include "constants.h"
 #include "debug/dump.h"
 #include "emerge.h"
 #include "filesys.h"
@@ -47,6 +48,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include "nodedef.h"
 #include "serverenvironment.h"
 #include "settings.h"
+#include "util/timetaker.h"
 #include "voxel.h"
 #include "voxelalgorithms.h"
 #if USE_OSMIUM
@@ -65,6 +67,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include <osmium/osm/way.hpp>
 #include <osmium/tags/tags_filter.hpp>
 #endif
+
 std::unique_ptr<maps_holder_t> MapgenEarth::maps_holder;
 
 void MapgenEarthParams::setDefaultSettings(Settings *settings)
@@ -138,7 +141,7 @@ MapgenEarth::MapgenEarth(MapgenEarthParams *params_, EmergeParams *emerge) :
 	// mg_params = (MapgenEarthParams *)params_->sparams;
 	mg_params = params_;
 
-	Json::Value &params = mg_params->params;
+	const Json::Value &params = mg_params->params;
 	flags = 0;
 
 	if (params.get("light", 0).asBool())
@@ -216,8 +219,9 @@ MapgenEarth::~MapgenEarth()
 
 MapNode MapgenEarth::layers_get(float value, float max)
 {
-	auto layer_index = rangelim((unsigned int)myround((value / max) * layers_node_size),
-			0, layers_node_size - 1);
+	const auto layer_index =
+			rangelim((unsigned int)myround((value / max) * layers_node_size), 0,
+					layers_node_size - 1);
 	return layers_node[layer_index];
 }
 
@@ -273,7 +277,7 @@ v2pos_t MapgenEarth::ll_to_pos(const ll &l)
 pos_t MapgenEarth::get_height(pos_t x, pos_t z)
 {
 	const auto tc = pos_to_ll(x, z);
-	auto y = maps_holder->hgt_reader.get(tc.lat, tc.lon);
+	const auto y = maps_holder->hgt_reader.get(tc.lat, tc.lon);
 	return ceil(y / scale.Y) - center.Y;
 }
 
@@ -289,18 +293,18 @@ int MapgenEarth::getGroundLevelAtPoint(v2pos_t p)
 
 int MapgenEarth::generateTerrain()
 {
-	MapNode n_ice(c_ice);
+	const MapNode n_ice(c_ice);
 	u32 index = 0;
-	auto em = vm->m_area.getExtent();
+	const auto em = vm->m_area.getExtent();
 
 	for (pos_t z = node_min.Z; z <= node_max.Z; z++) {
 		for (pos_t x = node_min.X; x <= node_max.X; x++, index++) {
-			auto heat =
+			const auto heat =
 					m_emerge->env->m_use_weather
 							? m_emerge->env->getServerMap().updateBlockHeat(m_emerge->env,
 									  v3pos_t(x, node_max.Y, z), nullptr, &heat_cache)
 							: 0;
-			auto height = get_height(x, z);
+			const auto height = get_height(x, z);
 			u32 i = vm->m_area.index(x, node_min.Y, z);
 			for (pos_t y = node_min.Y; y <= node_max.Y; y++) {
 				bool underground = height >= y;
@@ -375,7 +379,7 @@ void MapgenEarth::generateBuildings()
 {
 
 #if USE_OSMIUM
-	TimeTaker timer("earth buildings");
+	TimeTaker timer("earth buildings", {}, PRECISION_MILLI);
 	std::string use_file;
 	try {
 
@@ -396,7 +400,7 @@ void MapgenEarth::generateBuildings()
 		std::snprintf(buff, sizeof(buff), "%c%02d%c%03d-%s.osm.pbf",
 				lat_dec >= 0 ? 'N' : 'S', abs(lat_dec), lon_dec > 0 ? 'W' : 'E',
 				abs(lon_dec), timestamp.c_str());
-		std::string filename = buff;
+		const std::string filename = buff;
 		const auto base_full_name = folder + DIR_DELIM + filename;
 		if (!std::filesystem::exists(base_full_name)) {
 			const auto lock = std::lock_guard(maps_holder->osm_http_lock);
@@ -421,8 +425,10 @@ void MapgenEarth::generateBuildings()
 
 				std::stringstream cmd;
 				// TODO: use osmium tool as lib
-				cmd << "osmium extract --output-format pbf --strategy smart " << "--bbox "
-					<< bbox << " --output " << filename << ".tmp" << " " << path_name;
+				// --option types=multipolygon,route
+				cmd << "osmium extract --output-format pbf --strategy smart --option types=any "
+					<< "--bbox " << bbox << " --output " << filename << ".tmp" << " "
+					<< path_name;
 				exec_to_string(cmd.str());
 				if (!std::filesystem::exists(filename + ".tmp")) {
 					return false;
@@ -461,35 +467,42 @@ void MapgenEarth::generateBuildings()
 				if (!try_extract(use_file, bbox_next, filename_next)) {
 					break;
 				}
+
 				if (div >= 1000) {
 					maps_holder->files_to_delete.emplace_back(filename_next);
 				}
+
 				use_file = filename_next;
 				bbox = bbox_next;
 			}
 		}
 
 		if (std::filesystem::exists(use_file) && std::filesystem::file_size(use_file)) {
+			const auto lock = std::lock_guard{maps_holder->osm_bbox_lock};
 			if (!maps_holder->osm_bbox.contains(bbox)) {
 				const auto osm = std::make_shared<hdl>(this, use_file);
-				const auto lock = maps_holder->osm_bbox.lock_unique_rec();
+				//const auto lock = maps_holder->osm_bbox.lock_unique_rec();
 				if (!maps_holder->osm_bbox.contains(bbox)) {
 					maps_holder->osm_bbox.emplace(bbox, osm);
 				}
 			}
 		}
 
-		if (const auto &hdlr = maps_holder->osm_bbox.get(bbox)) {
-			hdlr->apply(this);
+		{
+			const auto lock = std::lock_guard{maps_holder->osm_bbox_lock};
+			if (const auto &hdlr = maps_holder->osm_bbox.get(bbox)) {
+				hdlr.value()->apply(this);
+			}
 		}
 	} catch (const std::exception &ex) {
 		warningstream << node_min << " : " << ex.what() << " file=" << use_file << "\n";
 	}
 
-	verbosestream << "Buildings stat: " << node_min << " .. " << node_max
+	verbosestream << "Buildings stat: " << node_min << " .. " << node_max << " "
 				  << " set=" << stat.set << " miss=" << stat.miss
 				  << " level=" << stat.level << " check=" << stat.check
-				  << " fill=" << stat.fill << " per=" << timer.getTimerTime() << "\n";
+				  << " fill=" << stat.fill << " per=" << timer.getTimerTime()
+				  << " mh=" << maps_holder->osm_bbox.size() << "\n";
 	stat.clean();
 #endif
 }
@@ -514,7 +527,9 @@ weather::humidity_t MapgenEarth::calcBlockHumidity(const v3pos_t &p, uint64_t se
 maps_holder_t::~maps_holder_t()
 {
 	for (const auto &file : files_to_delete) {
+#if NDEBUG
 		std::error_code ec;
 		std::filesystem::remove(file, ec);
+#endif
 	}
 };
