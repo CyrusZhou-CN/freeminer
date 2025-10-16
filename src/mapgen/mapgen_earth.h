@@ -32,6 +32,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include "filesys.h"
 #include "threading/concurrent_map.h"
 #include "threading/concurrent_vector.h"
+#include "util/lrucache.hpp"
 
 typedef core::vector2d<double> v2d;
 
@@ -73,8 +74,8 @@ struct maps_holder_t
 {
 	hgts hgt_reader{porting::path_cache + DIR_DELIM + "earth"};
 	using osm_ptr = std::shared_ptr<handler_i>;
-	concurrent_shared_map<std::string, osm_ptr> osm_by_path;
-	concurrent_shared_map<std::string, osm_ptr> osm_bbox;
+	lru_cache<std::string, osm_ptr, 50> osm_bbox;
+	std::mutex osm_bbox_lock;
 	std::mutex osm_http_lock;
 	std::mutex osm_extract_lock;
 	concurrent_shared_vector<std::string> files_to_delete;

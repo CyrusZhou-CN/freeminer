@@ -778,7 +778,7 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 							r /= color_far_scale;
 							g /= color_far_scale;
 							b /= color_far_scale;
-							const video::SColor c(255 / fscale, r, g, b);
+							const video::SColor c(0 / fscale, r, g, b);
 							const auto lpos_rel = lp.first - bpos_rel;
 							const auto coord = posToFloat(lpos_rel, BS);
 							video::S3DVertex v(coord.X, coord.Y, coord.Z, 0.0f, 0.0f,
