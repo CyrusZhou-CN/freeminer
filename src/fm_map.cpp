@@ -333,7 +333,7 @@ weather::humidity_t ServerMap::updateBlockHumidity(ServerEnvironment *env,
 	}
 
 	auto value =
-			m_emerge->getFirstMapgen()->calcBlockHeat(p, getSeed(), env->getTimeOfDayF(),
+			m_emerge->getFirstMapgen()->calcBlockHumidity(p, getSeed(), env->getTimeOfDayF(),
 					gametime * env->m_time_of_day_speed, env->m_use_weather);
 	//auto value = m_emerge->biomemgr->calcBlockHumidity(p, getSeed(), env->getTimeOfDayF(),gametime * env->m_time_of_day_speed, env->m_use_weather);
 

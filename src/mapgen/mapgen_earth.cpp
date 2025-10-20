@@ -209,16 +209,25 @@ MapgenEarth::MapgenEarth(MapgenEarthParams *params_, EmergeParams *emerge) :
 	hgt_reader.debug = 0;
 */
 
-	{
-		const auto heat_img = m_emerge->env->m_server->getGameSpec()->path + "/" +
-							  "mods/earth/data/earth_heat.png";
-		if (std::filesystem::exists(heat_img)) {
-			heat_image = std::make_unique<PngImage>(heat_img);
-		}
-	}
-
 	if (!maps_holder) {
 		maps_holder = std::make_unique<maps_holder_t>();
+	}
+
+	{
+		const auto heat_img = maps_holder->data_root + "/earth_heat.png";
+		if (!std::filesystem::exists(heat_img)) {
+			const auto lock = std::lock_guard(maps_holder->download_lock);
+			if (!std::filesystem::exists(heat_img)) {
+				multi_http_to_file_cdn("earth_heat.png", {});
+			}
+		}
+
+		if (std::filesystem::exists(heat_img)) {
+			const auto lock = std::lock_guard(maps_holder->download_lock);
+			if (!maps_holder->heat_image) {
+				maps_holder->heat_image = std::make_unique<PngImage>(heat_img);
+			}
+		}
 	}
 }
 
@@ -398,7 +407,7 @@ void MapgenEarth::generateBuildings()
 		//#include "earth/osmium-inl.h"
 		const auto tc = pos_to_ll(node_min.X, node_min.Z);
 		const auto tc_max = pos_to_ll(node_max.X, node_max.Z);
-		static const auto folder = porting::path_cache + DIR_DELIM + "earth";
+		static const auto folder = maps_holder->data_root;
 		const auto lat_dec = lat_start(tc.lat);
 		const auto lon_dec = lon_start(tc.lon);
 
@@ -533,10 +542,13 @@ weather::heat_t MapgenEarth::calcBlockHeat(const v3pos_t &p, uint64_t seed,
 {
 #if USE_OSMIUM
 	const auto ll = pos_to_ll(p);
-	if (heat_image) {
-		const auto x = heat_image->width() * ((ll.lon + 180) / 360);
-		const auto y =  (std::min<int>( heat_image->height(), heat_image->width()/1.6 )) * ((ll.lat + 90) / 180);
-		const auto pixel = heat_image->get_pixel(x, y);
+	if (maps_holder->heat_image) {
+		const auto x = maps_holder->heat_image->width() *
+					   ((int(45 + ll.lon + 180) % 360) / 360.0);
+		const auto y = (std::min<int>(maps_holder->heat_image->height(),
+							   maps_holder->heat_image->width() / 1.6)) *
+					   ((90 - ll.lat) / 180);
+		const auto pixel = maps_holder->heat_image->get_pixel(x, y);
 		auto heat = rgbToCelsiusJet(pixel->getRed(), pixel->getGreen(), pixel->getBlue());
 		heat += m_emerge->biomemgr->weather_heat_daily *
 				(sin(cycle_shift(timeofday, -0.25) * M_PI) - 0.5); //-64..0..34
