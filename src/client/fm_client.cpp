@@ -139,6 +139,11 @@ void Client::MakeEmerge(const Settings &settings, const MapgenType &mgtype)
 			try {
 				m_localserver = std::make_unique<Server>(
 						"farmesh", findSubgame(game), false, Address{}, true);
+				// auto m_env = new ServerEnvironment({}, //std::move(startup_server_map),
+				// 		m_localserver.get(), &m_metrics_backend		   //	m_metrics_backend.get()
+				// );
+				// m_localserver->m_env = m_env;
+
 				break;
 			} catch (const std::exception &ex) {
 				errorstream << "Failed to make local mapgen server with game " << game
@@ -155,6 +160,7 @@ void Client::MakeEmerge(const Settings &settings, const MapgenType &mgtype)
 		g_settings->set("num_emerge_threads", "1");
 		m_emerge = std::make_unique<EmergeManager>(
 				m_localserver.get(), m_localserver->m_metrics_backend.get());
+		// m_emerge->env = &m_localserver->getEnv();
 		m_emerge->initMapgens(m_mapgen_params.get());
 		g_settings->set("num_emerge_threads", num_emerge_threads);
 	}

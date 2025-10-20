@@ -74,12 +74,15 @@ public:
 
 struct maps_holder_t
 {
-	hgts hgt_reader{porting::path_cache + DIR_DELIM + "earth"};
+    const std::string data_root {porting::path_cache + DIR_DELIM + "earth"};
+	hgts hgt_reader{ data_root };
 	using osm_ptr = std::shared_ptr<handler_i>;
 	lru_cache<std::string, osm_ptr, 50> osm_bbox;
+	std::mutex download_lock;
 	std::mutex osm_bbox_lock;
 	std::mutex osm_http_lock;
 	std::mutex osm_extract_lock;
+	std::unique_ptr<PngImage> heat_image;
 	concurrent_shared_vector<std::string> files_to_delete;
 	~maps_holder_t();
 };
@@ -119,7 +122,6 @@ public:
 			float totaltime, bool use_weather) override;
 	weather::humidity_t calcBlockHumidity(const v3pos_t &p, uint64_t seed,
 			float timeofday, float totaltime, bool use_weather) override;
-	std::unique_ptr<PngImage> heat_image;
 
 	struct Stat
 	{
