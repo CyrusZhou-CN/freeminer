@@ -34,6 +34,8 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include "threading/concurrent_vector.h"
 #include "util/lrucache.hpp"
 
+class PngImage;
+
 typedef core::vector2d<double> v2d;
 
 //using ll_t = float;
@@ -117,6 +119,7 @@ public:
 			float totaltime, bool use_weather) override;
 	weather::humidity_t calcBlockHumidity(const v3pos_t &p, uint64_t seed,
 			float timeofday, float totaltime, bool use_weather) override;
+	std::unique_ptr<PngImage> heat_image;
 
 	struct Stat
 	{

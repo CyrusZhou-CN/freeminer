@@ -32,6 +32,9 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include "constants.h"
 #include "debug/dump.h"
 #include "emerge.h"
+#include "mapgen/earth/png_holder.h"
+#include "mapgen/earth/rgb_temp.h"
+#include "server.h"
 #include "filesys.h"
 #include "irr_v2d.h"
 #include "irr_v3d.h"
@@ -205,6 +208,14 @@ MapgenEarth::MapgenEarth(MapgenEarthParams *params_, EmergeParams *emerge) :
 	}
 	hgt_reader.debug = 0;
 */
+
+	{
+		const auto heat_img = m_emerge->env->m_server->getGameSpec()->path + "/" +
+							  "mods/earth/data/earth_heat.png";
+		if (std::filesystem::exists(heat_img)) {
+			heat_image = std::make_unique<PngImage>(heat_img);
+		}
+	}
 
 	if (!maps_holder) {
 		maps_holder = std::make_unique<maps_holder_t>();
@@ -507,16 +518,42 @@ void MapgenEarth::generateBuildings()
 #endif
 }
 
+/*
+Heat data:
+https://search.earthdata.nasa.gov/search/granules?p=C1276812859-GES_DISC&pg[0][v]=f&pg[0][gsk]=-start_date&g=G3503129918-GES_DISC&ff=Map%20Imagery&tl=1038183927.842!5!!&fsm0=Clouds&fst0=Atmosphere&long=2.3696682464454994&zoom=2.8910241901494977
+https://gibs-a.earthdata.nasa.gov/wmts/epsg4326/best/wmts.cgi?TIME=2025-03-01&layer=MERRA2_2m_Air_Temperature_Monthly&style=default&tilematrixset=2km&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image%2Fpng&TileMatrix=0&TileCol=0&TileRow=0
+
+Snow data:
+https://cmr.earthdata.nasa.gov/search/concepts/C3050353608-NSIDC_CPRD.html
+https://gibs-a.earthdata.nasa.gov/wmts/epsg4326/best/wmts.cgi?TIME=2025-03-01&layer=MODIS_Terra_L3_Snow_Cover_Monthly_Average_Pct&style=default&tilematrixset=2km&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image%2Fpng&TileMatrix=0&TileCol=0&TileRow=0
+*/
+
 weather::heat_t MapgenEarth::calcBlockHeat(const v3pos_t &p, uint64_t seed,
 		float timeofday, float totaltime, bool use_weather)
 {
 #if USE_OSMIUM
 	const auto ll = pos_to_ll(p);
-	const auto tile = osmium::geom::Tile(3, osmium::Location(ll.lon, ll.lat));
+	if (heat_image) {
+		const auto x = heat_image->width() * ((ll.lon + 180) / 360);
+		const auto y =  (std::min<int>( heat_image->height(), heat_image->width()/1.6 )) * ((ll.lat + 90) / 180);
+		const auto pixel = heat_image->get_pixel(x, y);
+		auto heat = rgbToCelsiusJet(pixel->getRed(), pixel->getGreen(), pixel->getBlue());
+		heat += m_emerge->biomemgr->weather_heat_daily *
+				(sin(cycle_shift(timeofday, -0.25) * M_PI) - 0.5); //-64..0..34
+		heat += p.Y / m_emerge->biomemgr->weather_heat_height;
+		if (m_emerge->biomemgr->weather_hot_core &&
+				p.Y < -(WEATHER_LIMIT - m_emerge->biomemgr->weather_hot_core))
+			heat += 6000 *
+					(1.0 - ((float)(p.Y - -WEATHER_LIMIT) /
+								   m_emerge->biomemgr
+										   ->weather_hot_core)); //hot core, later via realms
+		return heat;
+	}
 #endif
 	return m_emerge->biomemgr->calcBlockHeat(p, seed, timeofday, totaltime, use_weather);
 }
 
+// TODO: use cloud data
 weather::humidity_t MapgenEarth::calcBlockHumidity(const v3pos_t &p, uint64_t seed,
 		float timeofday, float totaltime, bool use_weather)
 {
