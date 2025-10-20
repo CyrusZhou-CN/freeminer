@@ -199,4 +199,26 @@ set(FMcommon_SRCS ${FMcommon_SRCS}
 	fm_clientiface.cpp
 	fm_serverenvironment.cpp
 	)
+
+set(FREEMINER_CLIENT_LIBRARIES
+		${MSGPACK_LIBRARY}
+		${ENET_LIBRARY}
+		${SCTP_LIBRARY}
+		${WEBSOCKETPP_LIBRARY}
+		${TIFF_LIRARY}
+		${OSMIUM_LIRARY}
+)
+
+find_package(PNG REQUIRED)
+
+set(FREEMINER_SERVER_LIBRARIES
+		${MSGPACK_LIBRARY}
+		${ENET_LIBRARY}
+		${SCTP_LIBRARY}
+		${WEBSOCKETPP_LIBRARY}
+		${TIFF_LIRARY}
+		${OSMIUM_LIRARY}
+        ${PNG_LIBRARY}
+)
+
 # == end freeminer:
