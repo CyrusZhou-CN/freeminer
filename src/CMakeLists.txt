@@ -609,6 +609,7 @@ include_directories(SYSTEM
 #freeminer includes:
 include_directories(
 	${MSGPACK_INCLUDE_DIR}
+    ${PNG_INCLUDE_DIR}
 )
 
 if(USE_GETTEXT)
