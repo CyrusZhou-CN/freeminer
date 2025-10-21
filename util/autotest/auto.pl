@@ -414,7 +414,7 @@ $commands = {
         file_append(
             "$config->{logdir}/run.sh",
             join "\n",
-            qq{# } . join(' ', $0, map { /[\s"]/ ? "'" . $_ . "'" : $_ } @ARGV),
+            qq{# } . join(' ', $0, map { /[()\s"]/ ? "'" . $_ . "'" : $_ } @ARGV),
             qq{cd "$build_dir"},
             ""
         );

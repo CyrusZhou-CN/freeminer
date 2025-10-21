@@ -172,10 +172,12 @@ public:
 		}
 	}
 
+	const static std::vector<ProcessedNode> dummy_nodes;
 	const std::vector<ProcessedNode> &nodes() const
 	{
 		if (is_way())
 			return as_way().nodes;
+		return dummy_nodes;
 	}
 
 	static ProcessedElement FromNode(const ProcessedNode &n)

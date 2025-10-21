@@ -29,8 +29,12 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include <system_error>
 #include <tuple>
 
+#include "constants.h"
 #include "debug/dump.h"
 #include "emerge.h"
+#include "mapgen/earth/png_holder.h"
+#include "mapgen/earth/rgb_temp.h"
+#include "server.h"
 #include "filesys.h"
 #include "irr_v2d.h"
 #include "irr_v3d.h"
@@ -47,6 +51,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include "nodedef.h"
 #include "serverenvironment.h"
 #include "settings.h"
+#include "util/timetaker.h"
 #include "voxel.h"
 #include "voxelalgorithms.h"
 #if USE_OSMIUM
@@ -65,6 +70,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include <osmium/osm/way.hpp>
 #include <osmium/tags/tags_filter.hpp>
 #endif
+
 std::unique_ptr<maps_holder_t> MapgenEarth::maps_holder;
 
 void MapgenEarthParams::setDefaultSettings(Settings *settings)
@@ -138,7 +144,7 @@ MapgenEarth::MapgenEarth(MapgenEarthParams *params_, EmergeParams *emerge) :
 	// mg_params = (MapgenEarthParams *)params_->sparams;
 	mg_params = params_;
 
-	Json::Value &params = mg_params->params;
+	const Json::Value &params = mg_params->params;
 	flags = 0;
 
 	if (params.get("light", 0).asBool())
@@ -206,6 +212,23 @@ MapgenEarth::MapgenEarth(MapgenEarthParams *params_, EmergeParams *emerge) :
 	if (!maps_holder) {
 		maps_holder = std::make_unique<maps_holder_t>();
 	}
+
+	{
+		const auto heat_img = maps_holder->data_root + "/earth_heat.png";
+		if (!std::filesystem::exists(heat_img)) {
+			const auto lock = std::lock_guard(maps_holder->download_lock);
+			if (!std::filesystem::exists(heat_img)) {
+				multi_http_to_file_cdn("earth_heat.png", {});
+			}
+		}
+
+		if (std::filesystem::exists(heat_img)) {
+			const auto lock = std::lock_guard(maps_holder->download_lock);
+			if (!maps_holder->heat_image) {
+				maps_holder->heat_image = std::make_unique<PngImage>(heat_img);
+			}
+		}
+	}
 }
 
 MapgenEarth::~MapgenEarth()
@@ -216,8 +239,9 @@ MapgenEarth::~MapgenEarth()
 
 MapNode MapgenEarth::layers_get(float value, float max)
 {
-	auto layer_index = rangelim((unsigned int)myround((value / max) * layers_node_size),
-			0, layers_node_size - 1);
+	const auto layer_index =
+			rangelim((unsigned int)myround((value / max) * layers_node_size), 0,
+					layers_node_size - 1);
 	return layers_node[layer_index];
 }
 
@@ -273,7 +297,7 @@ v2pos_t MapgenEarth::ll_to_pos(const ll &l)
 pos_t MapgenEarth::get_height(pos_t x, pos_t z)
 {
 	const auto tc = pos_to_ll(x, z);
-	auto y = maps_holder->hgt_reader.get(tc.lat, tc.lon);
+	const auto y = maps_holder->hgt_reader.get(tc.lat, tc.lon);
 	return ceil(y / scale.Y) - center.Y;
 }
 
@@ -289,18 +313,18 @@ int MapgenEarth::getGroundLevelAtPoint(v2pos_t p)
 
 int MapgenEarth::generateTerrain()
 {
-	MapNode n_ice(c_ice);
+	const MapNode n_ice(c_ice);
 	u32 index = 0;
-	auto em = vm->m_area.getExtent();
+	const auto em = vm->m_area.getExtent();
 
 	for (pos_t z = node_min.Z; z <= node_max.Z; z++) {
 		for (pos_t x = node_min.X; x <= node_max.X; x++, index++) {
-			auto heat =
+			const auto heat =
 					m_emerge->env->m_use_weather
 							? m_emerge->env->getServerMap().updateBlockHeat(m_emerge->env,
 									  v3pos_t(x, node_max.Y, z), nullptr, &heat_cache)
 							: 0;
-			auto height = get_height(x, z);
+			const auto height = get_height(x, z);
 			u32 i = vm->m_area.index(x, node_min.Y, z);
 			for (pos_t y = node_min.Y; y <= node_max.Y; y++) {
 				bool underground = height >= y;
@@ -375,7 +399,7 @@ void MapgenEarth::generateBuildings()
 {
 
 #if USE_OSMIUM
-	TimeTaker timer("earth buildings");
+	TimeTaker timer("earth buildings", {}, PRECISION_MILLI);
 	std::string use_file;
 	try {
 
@@ -383,7 +407,7 @@ void MapgenEarth::generateBuildings()
 		//#include "earth/osmium-inl.h"
 		const auto tc = pos_to_ll(node_min.X, node_min.Z);
 		const auto tc_max = pos_to_ll(node_max.X, node_max.Z);
-		static const auto folder = porting::path_cache + DIR_DELIM + "earth";
+		static const auto folder = maps_holder->data_root;
 		const auto lat_dec = lat_start(tc.lat);
 		const auto lon_dec = lon_start(tc.lon);
 
@@ -396,7 +420,7 @@ void MapgenEarth::generateBuildings()
 		std::snprintf(buff, sizeof(buff), "%c%02d%c%03d-%s.osm.pbf",
 				lat_dec >= 0 ? 'N' : 'S', abs(lat_dec), lon_dec > 0 ? 'W' : 'E',
 				abs(lon_dec), timestamp.c_str());
-		std::string filename = buff;
+		const std::string filename = buff;
 		const auto base_full_name = folder + DIR_DELIM + filename;
 		if (!std::filesystem::exists(base_full_name)) {
 			const auto lock = std::lock_guard(maps_holder->osm_http_lock);
@@ -421,8 +445,10 @@ void MapgenEarth::generateBuildings()
 
 				std::stringstream cmd;
 				// TODO: use osmium tool as lib
-				cmd << "osmium extract --output-format pbf --strategy smart " << "--bbox "
-					<< bbox << " --output " << filename << ".tmp" << " " << path_name;
+				// --option types=multipolygon,route
+				cmd << "osmium extract --output-format pbf --strategy smart --option types=any "
+					<< "--bbox " << bbox << " --output " << filename << ".tmp" << " "
+					<< path_name;
 				exec_to_string(cmd.str());
 				if (!std::filesystem::exists(filename + ".tmp")) {
 					return false;
@@ -461,49 +487,85 @@ void MapgenEarth::generateBuildings()
 				if (!try_extract(use_file, bbox_next, filename_next)) {
 					break;
 				}
+
 				if (div >= 1000) {
 					maps_holder->files_to_delete.emplace_back(filename_next);
 				}
+
 				use_file = filename_next;
 				bbox = bbox_next;
 			}
 		}
 
 		if (std::filesystem::exists(use_file) && std::filesystem::file_size(use_file)) {
+			const auto lock = std::lock_guard{maps_holder->osm_bbox_lock};
 			if (!maps_holder->osm_bbox.contains(bbox)) {
 				const auto osm = std::make_shared<hdl>(this, use_file);
-				const auto lock = maps_holder->osm_bbox.lock_unique_rec();
+				//const auto lock = maps_holder->osm_bbox.lock_unique_rec();
 				if (!maps_holder->osm_bbox.contains(bbox)) {
 					maps_holder->osm_bbox.emplace(bbox, osm);
 				}
 			}
 		}
 
-		if (const auto &hdlr = maps_holder->osm_bbox.get(bbox)) {
-			hdlr->apply(this);
+		{
+			const auto lock = std::lock_guard{maps_holder->osm_bbox_lock};
+			if (const auto &hdlr = maps_holder->osm_bbox.get(bbox)) {
+				hdlr.value()->apply(this);
+			}
 		}
 	} catch (const std::exception &ex) {
 		warningstream << node_min << " : " << ex.what() << " file=" << use_file << "\n";
 	}
 
-	verbosestream << "Buildings stat: " << node_min << " .. " << node_max
+	verbosestream << "Buildings stat: " << node_min << " .. " << node_max << " "
 				  << " set=" << stat.set << " miss=" << stat.miss
 				  << " level=" << stat.level << " check=" << stat.check
-				  << " fill=" << stat.fill << " per=" << timer.getTimerTime() << "\n";
+				  << " fill=" << stat.fill << " per=" << timer.getTimerTime()
+				  << " mh=" << maps_holder->osm_bbox.size() << "\n";
 	stat.clean();
 #endif
 }
+
+/*
+Heat data:
+https://search.earthdata.nasa.gov/search/granules?p=C1276812859-GES_DISC&pg[0][v]=f&pg[0][gsk]=-start_date&g=G3503129918-GES_DISC&ff=Map%20Imagery&tl=1038183927.842!5!!&fsm0=Clouds&fst0=Atmosphere&long=2.3696682464454994&zoom=2.8910241901494977
+https://gibs-a.earthdata.nasa.gov/wmts/epsg4326/best/wmts.cgi?TIME=2025-03-01&layer=MERRA2_2m_Air_Temperature_Monthly&style=default&tilematrixset=2km&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image%2Fpng&TileMatrix=0&TileCol=0&TileRow=0
+
+Snow data:
+https://cmr.earthdata.nasa.gov/search/concepts/C3050353608-NSIDC_CPRD.html
+https://gibs-a.earthdata.nasa.gov/wmts/epsg4326/best/wmts.cgi?TIME=2025-03-01&layer=MODIS_Terra_L3_Snow_Cover_Monthly_Average_Pct&style=default&tilematrixset=2km&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image%2Fpng&TileMatrix=0&TileCol=0&TileRow=0
+*/
 
 weather::heat_t MapgenEarth::calcBlockHeat(const v3pos_t &p, uint64_t seed,
 		float timeofday, float totaltime, bool use_weather)
 {
 #if USE_OSMIUM
 	const auto ll = pos_to_ll(p);
-	const auto tile = osmium::geom::Tile(3, osmium::Location(ll.lon, ll.lat));
+	if (maps_holder->heat_image) {
+		const auto x = maps_holder->heat_image->width() *
+					   ((int(45 + ll.lon + 180) % 360) / 360.0);
+		const auto y = (std::min<int>(maps_holder->heat_image->height(),
+							   maps_holder->heat_image->width() / 1.6)) *
+					   ((90 - ll.lat) / 180);
+		const auto pixel = maps_holder->heat_image->get_pixel(x, y);
+		auto heat = rgbToCelsiusJet(pixel->getRed(), pixel->getGreen(), pixel->getBlue());
+		heat += m_emerge->biomemgr->weather_heat_daily *
+				(sin(cycle_shift(timeofday, -0.25) * M_PI) - 0.5); //-64..0..34
+		heat += p.Y / m_emerge->biomemgr->weather_heat_height;
+		if (m_emerge->biomemgr->weather_hot_core &&
+				p.Y < -(WEATHER_LIMIT - m_emerge->biomemgr->weather_hot_core))
+			heat += 6000 *
+					(1.0 - ((float)(p.Y - -WEATHER_LIMIT) /
+								   m_emerge->biomemgr
+										   ->weather_hot_core)); //hot core, later via realms
+		return heat;
+	}
 #endif
 	return m_emerge->biomemgr->calcBlockHeat(p, seed, timeofday, totaltime, use_weather);
 }
 
+// TODO: use cloud data
 weather::humidity_t MapgenEarth::calcBlockHumidity(const v3pos_t &p, uint64_t seed,
 		float timeofday, float totaltime, bool use_weather)
 {
@@ -514,7 +576,9 @@ weather::humidity_t MapgenEarth::calcBlockHumidity(const v3pos_t &p, uint64_t se
 maps_holder_t::~maps_holder_t()
 {
 	for (const auto &file : files_to_delete) {
+#if NDEBUG
 		std::error_code ec;
 		std::filesystem::remove(file, ec);
+#endif
 	}
 };
