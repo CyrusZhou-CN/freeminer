@@ -115,6 +115,12 @@ public:
 	NetworkPacket &operator>>(v3s32 &dst);
 	NetworkPacket &operator<<(v3s32 src);
 
+	NetworkPacket &operator>>(s64 &dst);
+	NetworkPacket &operator<<(s64 src);
+
+	NetworkPacket &operator>>(v3s64 &dst);
+	NetworkPacket &operator<<(v3s64 src);
+
 	NetworkPacket &operator>>(video::SColor &dst);
 	NetworkPacket &operator<<(video::SColor src);
 

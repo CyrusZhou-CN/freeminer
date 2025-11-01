@@ -241,15 +241,6 @@ void push_v3s16(lua_State *L, v3s16 p)
 	lua_call(L, 3, 1);
 }
 
-void push_v3s32(lua_State *L, v3s32 p)
-{
-	lua_rawgeti(L, LUA_REGISTRYINDEX, CUSTOM_RIDX_PUSH_VECTOR);
-	lua_pushinteger(L, p.X);
-	lua_pushinteger(L, p.Y);
-	lua_pushinteger(L, p.Z);
-	lua_call(L, 3, 1);
-}
-
 v3s16 read_v3s16(lua_State *L, int index)
 {
 	// Correct rounding at <0
@@ -257,25 +248,11 @@ v3s16 read_v3s16(lua_State *L, int index)
 	return doubleToInt(pf, 1.0);
 }
 
-v3pos_t read_v3pos(lua_State *L, int index)
-{
-	// Correct rounding at <0
-	v3d pf = read_v3d(L, index);
-	return doubleToPos(pf, 1.0);
-}
-
 v3s16 check_v3s16(lua_State *L, int index)
 {
 	// Correct rounding at <0
 	v3d pf = check_v3d(L, index);
 	return doubleToInt(pf, 1.0);
-}
-
-v3pos_t check_v3pos(lua_State *L, int index)
-{
-	// Correct rounding at <0
-	v3d pf = check_v3d(L, index);
-	return doubleToPos(pf, 1.0);
 }
 
 bool read_color(lua_State *L, int index, video::SColor *color)
@@ -599,13 +576,6 @@ v3pos_t getv3s16field_default(lua_State *L, int table,
 	return default_;
 }
 
-v3pos_t getv3pos_tfield_default(lua_State *L, int table,
-		const char *fieldname, v3pos_t default_)
-{
-	getv3intfield(L, table, fieldname, default_);
-	return default_;
-}
-
 void setstringfield(lua_State *L, int table,
 		const char *fieldname, const std::string &value)
 {
@@ -689,4 +659,50 @@ size_t write_array_slice_float(
 	}
 
 	return elem_index - 1;
+}
+
+void push_v2s32(lua_State *L, v2s64 p)
+{
+	lua_createtable(L, 0, 2);
+	lua_pushinteger(L, p.X);
+	lua_setfield(L, -2, "x");
+	lua_pushinteger(L, p.Y);
+	lua_setfield(L, -2, "y");
+}
+
+void push_v2s16(lua_State *L, v2s64 p)
+{
+	push_v2s32(L, p);
+}
+
+void push_v3s16(lua_State *L, v3s32 p)
+{
+	lua_rawgeti(L, LUA_REGISTRYINDEX, CUSTOM_RIDX_PUSH_VECTOR);
+	lua_pushinteger(L, p.X);
+	lua_pushinteger(L, p.Y);
+	lua_pushinteger(L, p.Z);
+	lua_call(L, 3, 1);
+}
+
+void push_v3s16(lua_State *L, v3s64 p)
+{
+	lua_rawgeti(L, LUA_REGISTRYINDEX, CUSTOM_RIDX_PUSH_VECTOR);
+	lua_pushinteger(L, p.X);
+	lua_pushinteger(L, p.Y);
+	lua_pushinteger(L, p.Z);
+	lua_call(L, 3, 1);
+}
+
+v3pos_t read_v3pos(lua_State *L, int index)
+{
+	// Correct rounding at <0
+	v3d pf = read_v3d(L, index);
+	return doubleToPos(pf, 1.0);
+}
+
+v3pos_t check_v3pos(lua_State *L, int index)
+{
+	// Correct rounding at <0
+	v3d pf = check_v3d(L, index);
+	return doubleToPos(pf, 1.0);
 }

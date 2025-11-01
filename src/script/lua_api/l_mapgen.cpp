@@ -859,7 +859,7 @@ int ModApiMapgen::l_get_mapgen_edges(lua_State *L)
 	} else {
 		std::string mapgen_limit_str;
 		settingsmgr->getMapSetting("mapgen_limit", &mapgen_limit_str);
-		mapgen_limit = stoi(mapgen_limit_str, 0, MAX_MAP_GENERATION_LIMIT);
+		mapgen_limit = stol(mapgen_limit_str, 0, MAX_MAP_GENERATION_LIMIT);
 	}
 
 	s16 chunksize;
@@ -892,7 +892,7 @@ int ModApiMapgen::l_get_mapgen_chunksize(lua_State *L)
 	settingsmgr->getMapSetting("chunksize", &chunksize_str);
 	s16 chunksize = stoi(chunksize_str, 1, 10);
 
-	push_v3s16(L, {chunksize, chunksize, chunksize});
+	push_v3s16(L, v3s16{chunksize, chunksize, chunksize});
 	return 1;
 }
 

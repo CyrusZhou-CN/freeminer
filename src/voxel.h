@@ -332,9 +332,9 @@ private:
 	void cacheExtent()
 	{
 		m_cache_extent = {
-			MaxEdge.X - MinEdge.X + 1,
-			MaxEdge.Y - MinEdge.Y + 1,
-			MaxEdge.Z - MinEdge.Z + 1
+			static_cast<int>(MaxEdge.X - MinEdge.X + 1),
+			static_cast<int>(MaxEdge.Y - MinEdge.Y + 1),
+			static_cast<int>(MaxEdge.Z - MinEdge.Z + 1)
 		};
 		// If positions were sorted correctly this must always hold.
 		// Note that this still permits empty areas (where MinEdge = MaxEdge + 1).

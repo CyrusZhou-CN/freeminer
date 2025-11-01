@@ -29,10 +29,15 @@
 #define POS_MAX INT32_MAX
 
 // Node position
+#if USE_POS32 == 64
+using pos_t = s64;
+using bpos_t = s64;
+#else
 using pos_t = s32;
+using bpos_t = s32;
+#endif
 
 // Block position.
-using bpos_t = s32;
 
 #else
 #define POS_MIN INT16_MIN

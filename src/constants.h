@@ -53,7 +53,9 @@
 // I really don't want to make every algorithm to check if it's going near
 // the limit or not, so this is lower.
 // This is the maximum value the setting map_generation_limit can be
-#if USE_POS32
+#if USE_POS32 == 64
+#define MAX_MAP_GENERATION_LIMIT (9223372036854774784)
+#elif USE_POS32
 #define MAX_MAP_GENERATION_LIMIT (2147483008)
 #else
 #define MAX_MAP_GENERATION_LIMIT (31007)
