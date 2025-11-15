@@ -486,7 +486,7 @@ public:
 		Copy data and set flags to 0
 		dst_area.getExtent() <= src_area.getExtent()
 	*/
-	void copyFrom(MapNode *src, const VoxelArea& src_area,
+	void copyFrom(MapNode *src, bool is_mono_block, const VoxelArea& src_area,
 			v3pos_t from_pos, v3pos_t to_pos, const v3pos_t &size);
 
 	// Copy data

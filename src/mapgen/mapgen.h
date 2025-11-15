@@ -34,17 +34,12 @@ class NodeDefManager;
 extern const FlagDesc flagdesc_mapgen[];
 extern const FlagDesc flagdesc_gennotify[];
 
-class Biome;
 class BiomeGen;
 struct BiomeParams;
 class BiomeManager;
 class EmergeParams;
-class EmergeManager;
-class MapBlock;
-class VoxelManipulator;
 struct BlockMakeData;
 class VoxelArea;
-class Map;
 
 enum MapgenObject {
 	MGOBJ_VMANIP,
@@ -172,6 +167,7 @@ public:
 	u32 blockseed;
 	pos_t *heightmap = nullptr;
 	biome_t *biomemap = nullptr;
+	// Chunk size in nodes
 	v3pos_t csize;
 
 	BiomeGen *biomegen = nullptr;
