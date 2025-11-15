@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <cstdlib>
+#include <exception>
 #include <vector>
 #include "irr_v3d.h"
 #include "irrlichttypes.h"
@@ -183,49 +184,56 @@ public:
 
 class MyHandler : public osmium::handler::Handler
 {
-	MapgenEarth *mg;
-	const bool todo{false};
-
 public:
-	MyHandler(MapgenEarth *mg) : mg{mg} {}
+	MapgenEarth *mg{};
 
 	void way(const osmium::Way &way)
 	{
-		arnis::Ground ground;
-		ground.mg = mg;
-		arnis::WorldEditor editor;
-		editor.mg = mg;
-		editor.ground = &ground;
-		std::vector<arnis::ProcessedElement> v;
-		arnis::ProcessedWay w;
-		for (const auto &t : way.tags()) {
-			w.tags.emplace(t.key(), t.value());
+		try {
+			arnis::Ground ground;
+			ground.mg = mg;
+			arnis::WorldEditor editor;
+			editor.mg = mg;
+			editor.ground = &ground;
+			std::vector<arnis::ProcessedElement> v;
+			arnis::ProcessedWay w;
+			for (const auto &t : way.tags()) {
+				w.tags.emplace(t.key(), t.value());
+			}
+			for (const auto &n : way.nodes()) {
+				arnis::ProcessedNode pn;
+				pn.tags = w.tags;
+				const auto [x, y] = editor.node_to_xz(n);
+				pn.x = x;
+				pn.z = y;
+				pn.id = w.id;
+				w.nodes.emplace_back(pn);
+			}
+			v.emplace_back(w);
+			arnis::generate_world(editor, v);
+		} catch (const std::exception &ex) {
+			DUMP(ex.what());
 		}
-		for (const auto &n : way.nodes()) {
-			arnis::ProcessedNode pn;
-			pn.tags = w.tags;
-			const auto [x, y] = editor.node_to_xz(n);
-			pn.x = x;
-			pn.z = y;
-			pn.id = w.id;
-			w.nodes.emplace_back(pn);
-		}
-		v.emplace_back(w);
-		arnis::generate_world(editor, v);
 	}
 
 	void relation(const osmium::Relation &relation)
 	{
-
-		arnis::Ground ground;
-		ground.mg = mg;
-		arnis::WorldEditor editor;
-		editor.mg = mg;
-		editor.ground = &ground;
-		std::vector<arnis::ProcessedElement> v;
-		for (const auto &r : relation) {
+		try {
+			arnis::Ground ground;
+			ground.mg = mg;
+			arnis::WorldEditor editor;
+			editor.mg = mg;
+			editor.ground = &ground;
+			std::vector<arnis::ProcessedElement> v;
+			for (const auto &r : relation) {
+			}
+			for (const auto &sn : relation.subitems<osmium::Way>()) {
+				way(sn);
+			}
+			arnis::generate_world(editor, v);
+		} catch (const std::exception &ex) {
+			DUMP(ex.what());
 		}
-		arnis::generate_world(editor, v);
 	}
 };
 class hdl : public handler_i
@@ -234,20 +242,14 @@ class hdl : public handler_i
 			osmium::Location>;
 	using cache_t = osmium::handler::NodeLocationsForWays<index_t>;
 
-	MapgenEarth *mg{};
 	const std::string path_name;
 
-	MyHandler handler;
-
 public:
-	hdl(MapgenEarth *mg, const std::string &path_name) :
-			mg{mg}, path_name{path_name}, handler{mg}
-	{
-	}
+	hdl(MapgenEarth *mg, const std::string &path_name) : path_name{path_name} {}
 
 	~hdl() = default;
 
-	void apply() override
+	void apply(MapgenEarth *mg) override
 	{
 		osmium::area::Assembler::config_type assembler_config;
 		assembler_config.create_empty_areas = false;
@@ -260,7 +262,6 @@ public:
 		{
 			const auto llmin = mg->pos_to_ll(mg->node_min.X, mg->node_min.Z);
 			const auto llmax = mg->pos_to_ll(mg->node_max.X, mg->node_max.Z);
-
 		}
 		osmium::io::File file{path_name, "pbf"};
 		osmium::relations::read_relations(file, mp_manager);
@@ -272,9 +273,12 @@ public:
 		}
 
 		arnis::init(mg);
+
+		MyHandler handler;
+
+		handler.mg = mg;
 		osmium::apply(reader, cache, handler,
-				mp_manager.handler([&handler = this->handler](
-										   const osmium::memory::Buffer &area_buffer) {
+				mp_manager.handler([&handler](const osmium::memory::Buffer &area_buffer) {
 					osmium::apply(area_buffer, handler);
 				}));
 	}

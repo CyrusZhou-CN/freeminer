@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "fm_weather.h"
 #include "noise.h"
 #include "nodedef.h"
 #include "util/string.h"
@@ -98,10 +99,11 @@ private:
 
 // Order must match the order of 'static MapgenDesc g_reg_mapgens[]' in mapgen.cpp
 enum MapgenType {
+    // freeminer:
 	MAPGEN_EARTH,
-	MAPGEN_INDEV,
 	MAPGEN_MATH,
-
+	MAPGEN_INDEV,
+    // ==========
 
 	MAPGEN_V7,
 	MAPGEN_VALLEYS,
@@ -235,10 +237,10 @@ public:
 	virtual int getGroundLevelAtPoint(v2s16 p) { return 0; }
 
 	// freeminer:
-	ServerEnvironment *env = nullptr;
+	ServerEnvironment *env {};
 	s16 liquid_pressure = 0;
-	unordered_map_v3pos<s16> heat_cache;
-	unordered_map_v3pos<s16> humidity_cache;
+	unordered_map_v3bpos<weather::heat_t> heat_cache;
+	unordered_map_v3bpos<weather::humidity_t> humidity_cache;
 
 	MapNode visible_surface;
 	MapNode visible_surface_green;
@@ -253,6 +255,9 @@ public:
 	virtual bool visible_water_level(const v3pos_t &p);
 	virtual const MapNode &visible_content(const v3pos_t &p, bool use_weather);
 	virtual bool surface_2d() { return true; };
+	virtual weather::heat_t calcBlockHeat(const v3pos_t &p, uint64_t seed, float timeofday, float totaltime, bool use_weather);
+	virtual weather::humidity_t calcBlockHumidity(const v3pos_t &p, uint64_t seed, float timeofday, float totaltime, bool use_weather);
+    // ===
 
 	// getSpawnLevelAtPoint() is a function within each mapgen that returns a
 	// suitable y co-ordinate for player spawn ('suitable' usually meaning
