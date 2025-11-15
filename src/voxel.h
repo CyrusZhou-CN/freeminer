@@ -344,7 +344,7 @@ private:
 	}
 
 #if USE_POS32
-	static constexpr s32 MAX_EXTENT = POS_MAX;
+	static constexpr s32 MAX_EXTENT = INT32_MAX;
 #else
 	static constexpr s32 MAX_EXTENT = POS_MAX - POS_MIN + 1;
 #endif

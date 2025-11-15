@@ -70,7 +70,7 @@ public:
 	virtual MapgenType getType() const { return MAPGEN_CARPATHIAN; }
 
 	virtual void makeChunk(BlockMakeData *data);
-	int getSpawnLevelAtPoint(v2pos_t p);
+	pos_t getSpawnLevelAtPoint(v2pos_t p);
 
 private:
 	float base_level;

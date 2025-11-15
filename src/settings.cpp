@@ -1115,6 +1115,6 @@ bool Settings::getPosNoEx(const std::string &name, pos_t &val) const
 
 bool Settings::setPos(const std::string &name, pos_t value)
 {
-	return set(name, itos(value));
+	return set(name, i64tos(value));
 }
 

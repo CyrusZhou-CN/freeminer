@@ -28,8 +28,8 @@ bool getboolfield_default(lua_State *L, int table,
 		const char *fieldname, bool default_);
 float getfloatfield_default(lua_State *L, int table,
 		const char *fieldname, float default_);
-int getintfield_default(lua_State *L, int table,
-		const char *fieldname, int default_);
+long getintfield_default(lua_State *L, int table,
+		const char *fieldname, long default_);
 
 bool check_field_or_nil(lua_State *L, int index, int type, const char *fieldname);
 

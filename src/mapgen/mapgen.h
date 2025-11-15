@@ -156,8 +156,8 @@ class Mapgen {
 public:
 	// Seed used for noises (truncated from the map seed)
 	s32 seed = 0;
-	int water_level = 0;
-	int mapgen_limit = 0;
+	pos_t water_level = 0;
+	pos_t mapgen_limit = 0;
 	u32 flags = 0;
 	bool generating = false;
 	int id = -1;
@@ -229,14 +229,14 @@ public:
 	void spreadLight(const v3pos_t &nmin, const v3pos_t &nmax);
 
 	virtual void makeChunk(BlockMakeData *data) {}
-	virtual int getGroundLevelAtPoint(v2pos_t p) { return 0; }
+	virtual pos_t getGroundLevelAtPoint(v2pos_t p) { return 0; }
 
 	// getSpawnLevelAtPoint() is a function within each mapgen that returns a
 	// suitable y co-ordinate for player spawn ('suitable' usually meaning
 	// within 16 nodes of water_level). If a suitable spawn level cannot be
 	// found at the specified (X, Z) 'MAX_MAP_GENERATION_LIMIT' is returned to
 	// signify this and to cause Server::findSpawnPos() to try another (X, Z).
-	virtual int getSpawnLevelAtPoint(v2pos_t p) { return 0; }
+	virtual pos_t getSpawnLevelAtPoint(v2pos_t p) { return 0; }
 
 	// Mapgen management functions
 	static MapgenType getMapgenType(const std::string &mgname);

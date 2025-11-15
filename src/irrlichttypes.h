@@ -24,18 +24,17 @@
 #define U32_MAX UINT32_MAX
 #define U64_MAX UINT64_MAX
 
-#if USE_POS32
-#define POS_MIN INT32_MIN
-#define POS_MAX INT32_MAX
-
 // Node position
 #if USE_POS32 == 64
+#define POS_MIN INT64_MIN
+#define POS_MAX INT64_MAX
 using pos_t = s64;
 using bpos_t = s64;
-#else
+#elif USE_POS32
+#define POS_MIN INT32_MIN
+#define POS_MAX INT32_MAX
 using pos_t = s32;
 using bpos_t = s32;
-#endif
 
 // Block position.
 
