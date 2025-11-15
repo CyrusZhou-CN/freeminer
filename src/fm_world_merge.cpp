@@ -231,7 +231,7 @@ WorldMerger::one_block_stat_t WorldMerger::merge_one_block(MapDatabase *dbase,
 	// TODO: skip full air;
 	one_block_stat_t one_step_stat;
 	if (farlights) {
-		constexpr auto some_magick_thinner_const = 2; // more -> less far ligts
+		constexpr auto some_magick_thinner_const = 1; // more -> less far ligts
 		constexpr auto min_no_skip_ligts =
 				2; // do not skip this amount lights on block << farstep
 		for (const auto &[bpos, block] : blocks) {
@@ -241,12 +241,16 @@ WorldMerger::one_block_stat_t WorldMerger::merge_one_block(MapDatabase *dbase,
 			size_t lights_in_block = 0;
 			// TODO: apply some smart? filtering here
 			// block_up->m_light_points.insert(block->m_light_points.begin(), block->m_light_points.end());
+			const auto size = block->m_light_points.size();
+			if (!size)
+				continue;
+			const auto coef = 16.0 / size;
 			for (const auto &lp : block->m_light_points) {
 				++one_step_stat.lights_count;
 				++lights_in_block;
-				if ((step > 3 || lights_in_block > (min_no_skip_ligts << step)) &&
-						(one_step_stat.lights_count %
-								(some_magick_thinner_const * (16 - lp.second)))) {
+				const auto mod = int(coef * some_magick_thinner_const * (16 - lp.second));
+				if (mod && (step > 1 || lights_in_block > (min_no_skip_ligts << step)) &&
+						(one_step_stat.lights_count % mod)) {
 					continue;
 				}
 				++one_step_stat.lights_used;
