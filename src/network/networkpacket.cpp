@@ -563,3 +563,37 @@ Buffer<u8> NetworkPacket::oldForgePacket()
 
 	return sb;
 }
+
+NetworkPacket& NetworkPacket::operator>>(s64& dst)
+{
+	checkReadOffset(m_read_offset, 4);
+
+	dst = readS64(&m_data[m_read_offset]);
+
+	m_read_offset += 4;
+	return *this;
+}
+
+NetworkPacket& NetworkPacket::operator<<(s64 src)
+{
+	*this << (u64) src;
+	return *this;
+}
+
+NetworkPacket& NetworkPacket::operator>>(v3s64& dst)
+{
+	checkReadOffset(m_read_offset, 24);
+
+	dst = readV3S64(&m_data[m_read_offset]);
+
+	m_read_offset += 24;
+	return *this;
+}
+
+NetworkPacket& NetworkPacket::operator<<(v3s64 src)
+{
+	*this << (s64) src.X;
+	*this << (s64) src.Y;
+	*this << (s64) src.Z;
+	return *this;
+}

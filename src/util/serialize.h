@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "irr_v3d.h"
 #include "irrlichttypes_bloated.h"
 #include "exceptions.h" // for SerializationError
 #include "ieee_float.h"
@@ -398,11 +399,20 @@ inline void writeV3F32(u8 *data, v3f p)
 	writeF32(&data[8], p.Z);
 }
 
-inline void writeV3F64(u8 *data, v3d p)
+inline v3s64 readV3S64(const u8 *data)
 {
-	writeF64(&data[0], p.X);
-	writeF64(&data[8], p.Y);
-	writeF64(&data[16], p.Z);
+	v3s64 p;
+	p.X = readS64(&data[0]);
+	p.Y = readS64(&data[4]);
+	p.Z = readS64(&data[8]);
+	return p;
+}
+
+inline void writeV3S64(u8 *data, v3s64 p)
+{
+	writeS64(&data[0], p.X);
+	writeS64(&data[4], p.Y);
+	writeS64(&data[8], p.Z);
 }
 
 ////
@@ -462,11 +472,18 @@ MAKE_STREAM_WRITE_FXN(v3s32, V3S32,   12);
 MAKE_STREAM_WRITE_FXN(v3f,   V3F1000, 12);
 MAKE_STREAM_WRITE_FXN(v2f,   V2F32,    8);
 MAKE_STREAM_WRITE_FXN(v3f,   V3F32,   12);
-MAKE_STREAM_WRITE_FXN(v3d,   V3F64,   24);
+//MAKE_STREAM_WRITE_FXN(v3d,   V3F64,   24);
+//MAKE_STREAM_WRITE_FXN(v3opos_t, V3F64,   24);
 MAKE_STREAM_WRITE_FXN(video::SColor, ARGB8, 4);
 
+MAKE_STREAM_READ_FXN(v3s64, V3S64,   24);
+MAKE_STREAM_WRITE_FXN(v3s64, V3S64,   24);
+
+
 inline pos_t readPOS(std::istream &is) {
-#if USE_POS32
+#if USE_POS32 == 64
+	return readS64(is);
+#elif USE_POS32
 	return readS32(is);
 #else
 	return readS16(is);
@@ -474,7 +491,9 @@ inline pos_t readPOS(std::istream &is) {
 }
 
 inline void writePOS(std::ostream &os, pos_t i) {
-#if USE_POS32
+#if USE_POS32 == 64
+	return writeS64(os, i);
+#elif USE_POS32
 	return writeS32(os, i);
 #else
 	return writeS16(os, i);
@@ -482,7 +501,9 @@ inline void writePOS(std::ostream &os, pos_t i) {
 }
 
 inline v3pos_t readV3POS(std::istream &is) {
-#if USE_POS32
+#if USE_POS32 == 64
+    return readV3S64(is);
+#elif USE_POS32
     return readV3S32(is);
 #else
     return readV3S16(is);
@@ -490,7 +511,9 @@ inline v3pos_t readV3POS(std::istream &is) {
 }
 
 inline void writeV3POS(std::ostream &os, v3pos_t p) {
-#if USE_POS32
+#if USE_POS32 == 64
+    return writeV3S64(os, p);
+#elif USE_POS32
     return writeV3S32(os, p);
 #else
     return writeV3S16(os, p);

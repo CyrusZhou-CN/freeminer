@@ -510,11 +510,6 @@ s32 Settings::getS32(const std::string &name) const
 	return stoi(get(name));
 }
 
-pos_t Settings::getPos(const std::string &name) const
-{
-	return stoi(get(name));
-}
-
 
 float Settings::getFloat(const std::string &name) const
 {
@@ -771,15 +766,6 @@ bool Settings::getS32NoEx(const std::string &name, s32 &val) const
 }
 
 
-bool Settings::getPosNoEx(const std::string &name, pos_t &val) const
-{
-#if USE_POS32
-	return getS32NoEx(name, val);
-#else
-	return getS16NoEx(name, val);
-#endif
-}
-
 bool Settings::getU64NoEx(const std::string &name, u64 &val) const
 {
 	try {
@@ -923,11 +909,6 @@ bool Settings::setU16(const std::string &name, u16 value)
 
 
 bool Settings::setS32(const std::string &name, s32 value)
-{
-	return set(name, itos(value));
-}
-
-bool Settings::setPos(const std::string &name, pos_t value)
 {
 	return set(name, itos(value));
 }
@@ -1111,3 +1092,41 @@ void Settings::doCallbacks(const std::string &name) const
 			(it->first)(name, it->second);
 	}
 }
+
+
+s64 Settings::getS64(const std::string &name) const
+{
+	return stol(get(name));
+}
+
+pos_t Settings::getPos(const std::string &name) const
+{
+	return stoi(get(name));
+}
+
+bool Settings::getS64NoEx(const std::string &name, s64 &val) const
+{
+	try {
+		val = getS64(name);
+		return true;
+	} catch (SettingNotFoundException &e) {
+		return false;
+	}
+}
+
+bool Settings::getPosNoEx(const std::string &name, pos_t &val) const
+{
+#if USE_POS32 == 64
+	return getS64NoEx(name, val);
+#elif USE_POS32
+	return getS32NoEx(name, val);
+#else
+	return getS16NoEx(name, val);
+#endif
+}
+
+bool Settings::setPos(const std::string &name, pos_t value)
+{
+	return set(name, i64tos(value));
+}
+

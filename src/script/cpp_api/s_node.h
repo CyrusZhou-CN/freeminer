@@ -28,11 +28,12 @@ public:
 	void node_on_destruct(v3pos_t p, MapNode node);
 	bool node_on_flood(v3pos_t p, MapNode node, MapNode newnode);
 	void node_after_destruct(v3pos_t p, MapNode node);
-	bool node_on_timer(v3pos_t p, MapNode node, f32 dtime);
+	bool node_on_timer(v3pos_t p, MapNode node, f32 elapsed, f32 timeout);
 	void node_on_receive_fields(v3pos_t p,
 			const std::string &formname,
 			const StringMap &fields,
 			ServerActiveObject *sender);
+
 public:
 	static struct EnumString es_DrawType[];
 	static struct EnumString es_ContentParamType[];

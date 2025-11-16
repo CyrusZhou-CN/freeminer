@@ -261,6 +261,7 @@ u32 myrand();
 void mysrand(u64 seed);
 void myrand_bytes(void *out, size_t len);
 int myrand_range(int min, int max);
+long myrand_range(long min, long max);
 float myrand_range(float min, float max);
 float myrand_float();
 
