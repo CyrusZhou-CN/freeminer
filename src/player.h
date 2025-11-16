@@ -10,8 +10,6 @@
 #include "constants.h"
 #include "util/basic_macros.h"
 #include "util/string.h"
-#include <mutex>
-#include <functional>
 #include <string>
 
 #define PLAYERNAME_SIZE 20
@@ -138,9 +136,7 @@ enum CameraMode {
 
 extern const struct EnumString es_CameraMode[];
 
-class Map;
 struct HudElement;
-class Environment;
 
 class Player
 {
@@ -222,8 +218,8 @@ public:
 		return m_fov_override_spec;
 	}
 
+	const auto &getHudElements() const { return hud; }
 	HudElement* getHud(u32 id);
-	void        hudApply(std::function<void(const std::vector<HudElement*>&)> f);
 	u32         addHud(HudElement* hud);
 	HudElement* removeHud(u32 id);
 	void        clearHud();
@@ -240,12 +236,6 @@ protected:
 	u16 m_wield_index = 0;
 	PlayerFovSpec m_fov_override_spec = { 0.0f, false, 0.0f };
 
-	std::vector<HudElement *> hud;
-
 private:
-	// Protect some critical areas
-	// hud for example can be modified by EmergeThread
-	// and ServerThread
-	// FIXME: ^ this sounds like nonsense. should be checked.
-	std::mutex m_mutex;
+	std::vector<HudElement *> hud;
 };

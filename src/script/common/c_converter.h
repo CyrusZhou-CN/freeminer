@@ -28,8 +28,8 @@ bool getboolfield_default(lua_State *L, int table,
 		const char *fieldname, bool default_);
 float getfloatfield_default(lua_State *L, int table,
 		const char *fieldname, float default_);
-int getintfield_default(lua_State *L, int table,
-		const char *fieldname, int default_);
+long getintfield_default(lua_State *L, int table,
+		const char *fieldname, long default_);
 
 bool check_field_or_nil(lua_State *L, int index, int type, const char *fieldname);
 
@@ -74,9 +74,6 @@ v3f checkFloatPos(lua_State *L, int index);
 v2f check_v2f(lua_State *L, int index);
 v3f check_v3f(lua_State *L, int index);
 v3s16 check_v3s16(lua_State *L, int index);
-v3pos_t check_v3pos(lua_State *L, int index);
-v3opos_t check_v3o(lua_State *L, int index);
-v3opos_t checkOposPos(lua_State *L, int index);
 
 // TODO: some day we should figure out the type-checking situation so it's done
 // everywhere. (right now {x=true, y=false} as v2f is {0,0} with no warning)
@@ -90,17 +87,8 @@ v2f read_v2f(lua_State *L, int index);
 v2s16 read_v2s16(lua_State *L, int index);
 /// @warning relaxed type-checking
 v2s32 read_v2s32(lua_State *L, int index);
-inline v2pos_t read_v2pos(lua_State *L, int index) {
-	#if USE_POS32
-	return read_v2s32(L, index);
-	#else
-	return read_v2s16(L, index);
-	#endif
-}
 /// @warning relaxed type-checking, prefer `check_v3s16`.
 v3s16 read_v3s16(lua_State *L, int index);
-v3s32 read_v3s32(lua_State *L, int index);
-v3pos_t read_v3pos(lua_State *L, int index);
 
 video::SColor read_ARGB8(lua_State *L, int index);
 bool read_color(lua_State *L, int index, video::SColor *color);
@@ -125,23 +113,8 @@ size_t read_stringlist(lua_State *L, int index,
 
 void push_v2s16(lua_State *L, v2s16 p);
 void push_v2s32(lua_State *L, v2s32 p);
-inline void         push_v2pos          (lua_State *L, v2pos_t p) {
-	#if USE_POS32
-	return push_v2s32(L, p);
-	#else
-	return push_v2s16(L, p);
-	#endif
-}
 void push_v2u32(lua_State *L, v2u32 p);
 void push_v3s16(lua_State *L, v3s16 p);
-void push_v3s32(lua_State *L, v3s32 p);
-inline void push_v3pos(lua_State *L, v3pos_t p) {
-	#if USE_POS32
-	return push_v3s32(L, p);
-	#else
-	return push_v3s16(L, p);
-	#endif
-}
 void push_aabb3f(lua_State *L, aabb3f box, f32 divisor = 1.0f);
 void push_ARGB8(lua_State *L, video::SColor color);
 void pushFloatPos(lua_State *L, v3f p);
@@ -163,3 +136,45 @@ inline lua_Number hash_node_position(v3pos_t pos)
 			| (((s64)pos.Y + 0x8000L) << 16)
 			| ((s64)pos.X + 0x8000L);
 }
+
+v3pos_t check_v3pos(lua_State *L, int index);
+v2s64 read_v2s64(lua_State *L, int index);
+inline v2pos_t read_v2pos(lua_State *L, int index) {
+	#if USE_POS32 == 64
+	return read_v2s64(L, index);
+	#elif USE_POS32
+	return read_v2s32(L, index);
+	#else
+	return read_v2s16(L, index);
+	#endif
+}
+v3s32 read_v3s32(lua_State *L, int index);
+v3pos_t read_v3pos(lua_State *L, int index);
+void push_v2s32(lua_State *L, v2s64 p);
+void push_v2s16(lua_State *L, v2s64 p);
+void push_v3s32(lua_State *L, v3s32 p);
+void push_v3s16(lua_State *L, v3s32 p);
+//void push_v3s32(lua_State *L, v3s64 p);
+void push_v3s16(lua_State *L, v3s64 p);
+inline void push_v3pos(lua_State *L, v3pos_t p) {
+	#if USE_POS32 == 64
+	return push_v3s16(L, p);
+	#elif USE_POS32
+	return push_v3s16(L, p);
+	#else
+	return push_v3s16(L, p);
+	#endif
+}
+inline void         push_v2pos          (lua_State *L, v2pos_t p) {
+	#if USE_POS32 == 64
+	return push_v2s16(L, p);
+	#elif USE_POS32
+	return push_v2s32(L, p);
+	#else
+	return push_v2s16(L, p);
+	#endif
+}
+
+v3pos_t check_v3pos(lua_State *L, int index);
+v3opos_t check_v3o(lua_State *L, int index);
+v3opos_t checkOposPos(lua_State *L, int index);

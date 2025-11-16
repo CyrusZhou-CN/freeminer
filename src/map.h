@@ -24,7 +24,6 @@
 class MapSector;
 class NodeMetadata;
 class IGameDef;
-class IRollbackManager;
 
 /*
 	MapEditEvent

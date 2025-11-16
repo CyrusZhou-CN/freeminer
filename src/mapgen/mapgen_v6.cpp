@@ -43,6 +43,18 @@ const FlagDesc flagdesc_mapgen_v6[] = {
 MapgenV6::MapgenV6(MapgenV6Params *params, EmergeParams *emerge)
 	: Mapgen(MAPGEN_V6, params, emerge)
 {
+	if (csize.X != csize.Y || csize.Y != csize.Z) {
+		// In practice:
+		// (5,2,1) segfaults in mudflow
+		// (5,2,5) generates very broken terrain
+		throw BaseException("MapgenV6: chunk size must be cubic");
+	}
+	if (csize.Y % (MAP_BLOCKSIZE * 2) == 0) {
+		// weird ledges appear in some places
+		warningstream << "MapgenV6: chunk heights divisible by two are known "
+			"to be buggy." << std::endl;
+	}
+
 	ystride = csize.X;
 
 	heightmap = new pos_t[csize.X * csize.Z];
@@ -325,13 +337,13 @@ float MapgenV6::baseTerrainLevelFromMap(int index)
 }
 
 
-int MapgenV6::getGroundLevelAtPoint(v2pos_t p)
+pos_t MapgenV6::getGroundLevelAtPoint(v2pos_t p)
 {
 	return baseTerrainLevelFromNoise(p) + MGV6_AVERAGE_MUD_AMOUNT;
 }
 
 
-int MapgenV6::getSpawnLevelAtPoint(v2pos_t p)
+pos_t MapgenV6::getSpawnLevelAtPoint(v2pos_t p)
 {
 	pos_t level_at_point = baseTerrainLevelFromNoise(p) + MGV6_AVERAGE_MUD_AMOUNT;
 	if (level_at_point <= water_level ||
@@ -649,13 +661,13 @@ void MapgenV6::calculateNoise()
 }
 
 
-int MapgenV6::generateGround()
+pos_t MapgenV6::generateGround()
 {
 	//TimeTaker timer1("Generating ground level");
 	MapNode n_air(CONTENT_AIR), n_water_source(c_water_source);
 	MapNode n_stone(c_stone), n_desert_stone(c_desert_stone);
 	MapNode n_ice(c_ice);
-	int stone_surface_max_y = -MAX_MAP_GENERATION_LIMIT;
+	pos_t stone_surface_max_y = -MAX_MAP_GENERATION_LIMIT;
 
 	u32 index = 0;
 	for (pos_t z = node_min.Z; z <= node_max.Z; z++)

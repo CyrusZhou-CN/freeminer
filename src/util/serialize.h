@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "irr_v3d.h"
 #include "irrlichttypes_bloated.h"
 #include "exceptions.h" // for SerializationError
 #include "ieee_float.h"
@@ -399,11 +400,20 @@ inline void writeV3F32(u8 *data, v3f p)
 	writeF32(&data[8], p.Z);
 }
 
-inline void writeV3F64(u8 *data, v3d p)
+inline v3s64 readV3S64(const u8 *data)
 {
-	writeF64(&data[0], p.X);
-	writeF64(&data[8], p.Y);
-	writeF64(&data[16], p.Z);
+	v3s64 p;
+	p.X = readS64(&data[0]);
+	p.Y = readS64(&data[4]);
+	p.Z = readS64(&data[8]);
+	return p;
+}
+
+inline void writeV3S64(u8 *data, v3s64 p)
+{
+	writeS64(&data[0], p.X);
+	writeS64(&data[4], p.Y);
+	writeS64(&data[8], p.Z);
 }
 
 ////
@@ -463,11 +473,20 @@ MAKE_STREAM_WRITE_FXN(v3s32, V3S32,   12);
 MAKE_STREAM_WRITE_FXN(v3f,   V3F1000, 12);
 MAKE_STREAM_WRITE_FXN(v2f,   V2F32,    8);
 MAKE_STREAM_WRITE_FXN(v3f,   V3F32,   12);
-MAKE_STREAM_WRITE_FXN(v3d,   V3F64,   24);
+//MAKE_STREAM_WRITE_FXN(v3d,   V3F64,   24);
+//MAKE_STREAM_WRITE_FXN(v3opos_t, V3F64,   24);
 MAKE_STREAM_WRITE_FXN(video::SColor, ARGB8, 4);
 
+MAKE_STREAM_READ_FXN(v3s64, V3S64,   24);
+MAKE_STREAM_WRITE_FXN(v3s64, V3S64,   24);
+//
+
 inline pos_t readPOS(std::istream &is, const u16 proto_ver = 0) {
-#if USE_POS32
+#if USE_POS32 == 64
+	if (proto_ver >= PROTOCOL_VERSION_32BIT)
+		return readS64(is);
+	return readS16(is);
+#elif USE_POS32
 	if (proto_ver >= PROTOCOL_VERSION_32BIT)
 		return readS32(is);
 	return readS16(is);
@@ -477,7 +496,11 @@ inline pos_t readPOS(std::istream &is, const u16 proto_ver = 0) {
 }
 
 inline void writePOS(std::ostream &os, pos_t i, const u16 proto_ver = 0) {
-#if USE_POS32
+#if USE_POS32 == 64
+	if (proto_ver >= PROTOCOL_VERSION_32BIT)
+		return writeS64(os, i);
+	return writeS16(os, i);
+#elif USE_POS32
 	if (proto_ver >= PROTOCOL_VERSION_32BIT)
 		return writeS32(os, i);
 	return writeS16(os, i);
@@ -487,7 +510,11 @@ inline void writePOS(std::ostream &os, pos_t i, const u16 proto_ver = 0) {
 }
 
 inline v3pos_t readV3Pos(std::istream &is, const u16 proto_ver = 0) {
-#if USE_POS32
+#if USE_POS32 == 64
+	if (proto_ver >= PROTOCOL_VERSION_32BIT)
+	    return readV3S64(is);
+    return s16ToPos(readV3S16(is));
+#elif USE_POS32
 	if (proto_ver >= PROTOCOL_VERSION_32BIT)
 	    return readV3S32(is);
     return s16ToPos(readV3S16(is));
@@ -497,9 +524,13 @@ inline v3pos_t readV3Pos(std::istream &is, const u16 proto_ver = 0) {
 }
 
 inline void writeV3Pos(std::ostream &os, v3pos_t p, const u16 proto_ver = 0) {
-#if USE_POS32
+#if USE_POS32 == 64
 	if (proto_ver >= PROTOCOL_VERSION_32BIT)
-	    return writeV3S32(os, p);
+        return writeV3S64(os, p);
+    return writeV3S16(os, posToS16(p));
+#elif USE_POS32
+	if (proto_ver >= PROTOCOL_VERSION_32BIT)
+        return writeV3S32(os, p);
     return writeV3S16(os, posToS16(p));
 #else
     return writeV3S16(os, p);
