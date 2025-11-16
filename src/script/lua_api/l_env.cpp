@@ -1230,7 +1230,6 @@ int ModApiEnv::l_raycast(lua_State *L)
 int ModApiEnv::l_load_area(lua_State *L)
 {
 	GET_ENV_PTR;
-	MAP_LOCK_REQUIRED;
 
 	Map *map = &(env->getMap());
 	v3bpos_t bp1 = getNodeBlockPos(check_v3pos(L, 1));
@@ -1446,7 +1445,8 @@ int ModApiEnv::l_forceload_free_block(lua_State *L)
 // get_translated_string(lang_code, string)
 int ModApiEnv::l_get_translated_string(lua_State * L)
 {
-	GET_ENV_PTR;
+	NO_MAP_LOCK_REQUIRED;
+
 	std::string lang_code = luaL_checkstring(L, 1);
 	std::string string = luaL_checkstring(L, 2);
 
