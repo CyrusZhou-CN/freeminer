@@ -94,17 +94,11 @@ public:
 	NetworkPacket &operator>>(float &dst);
 	NetworkPacket &operator<<(float src);
 
-	NetworkPacket &operator>>(double &dst);
-	NetworkPacket &operator<<(double src);
-
 	NetworkPacket &operator>>(v2f &dst);
 	NetworkPacket &operator<<(v2f src);
 
 	NetworkPacket &operator>>(v3f &dst);
 	NetworkPacket &operator<<(v3f src);
-
-	NetworkPacket &operator>>(v3d &dst);
-	NetworkPacket &operator<<(v3d src);
 
 	NetworkPacket &operator>>(s16 &dst);
 	NetworkPacket &operator<<(s16 src);
@@ -121,14 +115,20 @@ public:
 	NetworkPacket &operator>>(v3s32 &dst);
 	NetworkPacket &operator<<(v3s32 src);
 
+	NetworkPacket &operator>>(video::SColor &dst);
+	NetworkPacket &operator<<(video::SColor src);
+
 	NetworkPacket &operator>>(s64 &dst);
 	NetworkPacket &operator<<(s64 src);
 
 	NetworkPacket &operator>>(v3s64 &dst);
 	NetworkPacket &operator<<(v3s64 src);
 
-	NetworkPacket &operator>>(video::SColor &dst);
-	NetworkPacket &operator<<(video::SColor src);
+	NetworkPacket &operator>>(double &dst);
+	NetworkPacket &operator<<(double src);
+
+	NetworkPacket &operator>>(v3d &dst);
+	NetworkPacket &operator<<(v3d src);
 
 	// Temp, we remove SharedBuffer when migration finished
 	// ^ this comment has been here for 7 years
