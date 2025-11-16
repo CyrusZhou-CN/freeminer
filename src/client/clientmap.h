@@ -85,7 +85,7 @@ public:
 		return m_box;
 	}
 
-	void getBlocksInViewRange(v3s16 cam_pos_nodes,
+	void getBlocksInViewRange(v3pos_t cam_pos_nodes,
 		v3pos_t *p_blocks_min, v3pos_t *p_blocks_max, float range=-1.0f);
 
 	void updateDrawList();

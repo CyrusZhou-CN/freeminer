@@ -324,7 +324,7 @@ void ServerMap::finishBlockMake(BlockMakeData *data,
 	const auto full_bpmin = bpmin - EMERGE_EXTRA_BORDER;
 	const auto full_bpmax = bpmax + EMERGE_EXTRA_BORDER;
 
-	v3s16 bp;
+	v3bpos_t bp;
 	for (bp.X = full_bpmin.X; bp.X <= full_bpmax.X; bp.X++)
 	for (bp.Z = full_bpmin.Z; bp.Z <= full_bpmax.Z; bp.Z++)
 	for (bp.Y = full_bpmin.Y; bp.Y <= full_bpmax.Y; bp.Y++) {
