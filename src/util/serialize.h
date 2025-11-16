@@ -208,14 +208,6 @@ inline f32 readF32(const u8 *data)
 	throw SerializationError("readF32: Unreachable code");
 }
 
-inline f64 readF64(const u8 *data)
-{
-	u64 u = readU64(data);
-	f64 f;
-	memcpy(&f, &u, 8);
-	return f;
-}
-
 inline video::SColor readARGB8(const u8 *data)
 {
 	video::SColor p(readU32(data));
@@ -282,15 +274,6 @@ inline v3f readV3F32(const u8 *data)
 	return p;
 }
 
-inline v3d readV3F64(const u8 *data)
-{
-	v3d p;
-	p.X = readF64(&data[0]);
-	p.Y = readF64(&data[8]);
-	p.Z = readF64(&data[16]);
-	return p;
-}
-
 /////////////// write routines ////////////////
 
 inline void writeU8(u8 *data, u8 i)
@@ -339,13 +322,6 @@ inline void writeF32(u8 *data, f32 i)
 		return writeF32(data, i);
 	}
 	throw SerializationError("writeF32: Unreachable code");
-}
-
-inline void writeF64(u8 *data, double i)
-{
-	u64 u;
-	memcpy(&u, &i, 8);
-	return writeU64(data, u);
 }
 
 inline void writeARGB8(u8 *data, video::SColor p)
@@ -398,6 +374,31 @@ inline void writeV3F32(u8 *data, v3f p)
 	writeF32(&data[4], p.Y);
 	writeF32(&data[8], p.Z);
 }
+
+inline f64 readF64(const u8 *data)
+{
+	u64 u = readU64(data);
+	f64 f;
+	memcpy(&f, &u, 8);
+	return f;
+}
+
+inline v3d readV3F64(const u8 *data)
+{
+	v3d p;
+	p.X = readF64(&data[0]);
+	p.Y = readF64(&data[8]);
+	p.Z = readF64(&data[16]);
+	return p;
+}
+
+inline void writeF64(u8 *data, double i)
+{
+	u64 u;
+	memcpy(&u, &i, 8);
+	return writeU64(data, u);
+}
+
 
 inline v3s64 readV3S64(const u8 *data)
 {
@@ -452,7 +453,6 @@ MAKE_STREAM_READ_FXN(v3s32, V3S32,   12);
 MAKE_STREAM_READ_FXN(v3f,   V3F1000, 12);
 MAKE_STREAM_READ_FXN(v2f,   V2F32,    8);
 MAKE_STREAM_READ_FXN(v3f,   V3F32,   12);
-MAKE_STREAM_READ_FXN(v3d,   V3F64,   24);
 MAKE_STREAM_READ_FXN(video::SColor, ARGB8, 4);
 
 MAKE_STREAM_WRITE_FXN(u8,    U8,       1);
@@ -472,13 +472,11 @@ MAKE_STREAM_WRITE_FXN(v3s32, V3S32,   12);
 MAKE_STREAM_WRITE_FXN(v3f,   V3F1000, 12);
 MAKE_STREAM_WRITE_FXN(v2f,   V2F32,    8);
 MAKE_STREAM_WRITE_FXN(v3f,   V3F32,   12);
-//MAKE_STREAM_WRITE_FXN(v3d,   V3F64,   24);
-//MAKE_STREAM_WRITE_FXN(v3opos_t, V3F64,   24);
 MAKE_STREAM_WRITE_FXN(video::SColor, ARGB8, 4);
 
+MAKE_STREAM_READ_FXN(v3d,   V3F64,   24);
 MAKE_STREAM_READ_FXN(v3s64, V3S64,   24);
 MAKE_STREAM_WRITE_FXN(v3s64, V3S64,   24);
-
 
 inline pos_t readPOS(std::istream &is) {
 #if USE_POS32 == 64
