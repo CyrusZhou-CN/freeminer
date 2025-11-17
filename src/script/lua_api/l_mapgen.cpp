@@ -1684,7 +1684,7 @@ int ModApiMapgen::l_generate_decorations(lua_State *L)
 	sortBoxVerticies(pmin, pmax);
 	if (use_mapgen_biomes) {
 		assert(oldvm);
-		const v3s16 required_pmin = oldvm->m_area.MinEdge + MAP_BLOCKSIZE,
+		const auto required_pmin = oldvm->m_area.MinEdge + MAP_BLOCKSIZE,
 			required_pmax = oldvm->m_area.MaxEdge - MAP_BLOCKSIZE;
 		if (pmin != required_pmin || pmax != required_pmax)
 			throw LuaError("use_mapgen_biomes requires extents matching chunk area");

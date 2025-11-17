@@ -52,7 +52,7 @@ void QueuedMeshUpdate::retrieveBlocks(Map *map, u16 cell_size)
 bool QueuedMeshUpdate::checkSkip(u16 cell_size)
 {
 	bool all_air = true;
-	const v3s16 p_max = p + v3s16(cell_size);
+	const v3bpos_t p_max = p + v3bpos_t(cell_size);
 	assert(!map_blocks.empty());
 	for (const auto &block : map_blocks) {
 		// ignore extra margin

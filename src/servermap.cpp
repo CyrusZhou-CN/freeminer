@@ -291,12 +291,12 @@ void ServerMap::cancelBlockMake(BlockMakeData *data)
 {
 	assert(data->vmanip); // no vmanip = initBlockMake did not complete (caller mistake)
 
-	const v3s16 full_bpmin = data->blockpos_min - EMERGE_EXTRA_BORDER;
-	const v3s16 full_bpmax = data->blockpos_max + EMERGE_EXTRA_BORDER;
-	for (s16 x = full_bpmin.X; x <= full_bpmax.X; x++)
-	for (s16 z = full_bpmin.Z; z <= full_bpmax.Z; z++)
-	for (s16 y = full_bpmin.Y; y <= full_bpmax.Y; y++) {
-		MapBlock *block = getBlockNoCreateNoEx(v3s16(x, y, z));
+	const auto full_bpmin = data->blockpos_min - EMERGE_EXTRA_BORDER;
+	const auto full_bpmax = data->blockpos_max + EMERGE_EXTRA_BORDER;
+	for (auto x = full_bpmin.X; x <= full_bpmax.X; x++)
+	for (auto z = full_bpmin.Z; z <= full_bpmax.Z; z++)
+	for (auto y = full_bpmin.Y; y <= full_bpmax.Y; y++) {
+		MapBlock *block = getBlockNoCreateNoEx(v3bpos_t(x, y, z));
 		if (block)
 			block->refDrop();
 	}

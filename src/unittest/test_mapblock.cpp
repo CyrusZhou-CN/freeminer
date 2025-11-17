@@ -108,8 +108,8 @@ void TestMapBlock::testMonoblock(IGameDef *gamedef)
 	UASSERT(block.data[0].param0 == 42);
 
 	VoxelManipulator vmm;
-	v3s16 data_size(MAP_BLOCKSIZE, MAP_BLOCKSIZE, MAP_BLOCKSIZE);
-	vmm.addArea(VoxelArea(block.getPosRelative(), block.getPosRelative() + data_size + v3s16(1,1,1)));
+	v3pos_t data_size(MAP_BLOCKSIZE, MAP_BLOCKSIZE, MAP_BLOCKSIZE);
+	vmm.addArea(VoxelArea(block.getPosRelative(), block.getPosRelative() + data_size + v3pos_t(1,1,1)));
 	block.copyTo(vmm);
 	UASSERT(block.m_is_mono_block);
 	UASSERT(vmm.getNode({5,5,5}).param0 == 42);

@@ -1216,7 +1216,7 @@ void ServerEnvironment::step(float dtime, double uptime, unsigned int max_cycle_
 			const auto dtime = uptime - block->m_node_timers.m_uptime_last;
 			block->m_node_timers.m_uptime_last = uptime;
 
-			block->step(dtime, [&](v3s16 p, MapNode n, NodeTimer t) -> bool {
+			block->step(dtime, [&](v3pos_t p, MapNode n, NodeTimer t) -> bool {
 				return m_script->node_on_timer(p, n, t.elapsed, t.timeout);
 			});
 
