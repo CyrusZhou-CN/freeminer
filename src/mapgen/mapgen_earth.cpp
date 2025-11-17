@@ -509,8 +509,10 @@ void MapgenEarth::generateBuildings()
 		}
 
 		{
-			const auto lock = std::lock_guard{maps_holder->osm_bbox_lock};
+			auto lock = std::unique_lock{maps_holder->osm_bbox_lock};
+
 			if (const auto &hdlr = maps_holder->osm_bbox.get(bbox)) {
+				lock.unlock();
 				hdlr.value()->apply(this);
 			}
 		}
