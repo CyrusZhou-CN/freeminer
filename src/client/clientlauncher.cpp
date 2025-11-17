@@ -498,10 +498,6 @@ bool ClientLauncher::launch_game(std::string &error_message,
 			start_data.world_spec = worldspecs[world_index];
 		}
 
-		//fm: 
-        if (menudata.name.empty()) {
-        	menudata.name = std::string("Guest") + itos(myrand_range(100000, 999999));
-		}
 
 		start_data.name = menudata.name;
 		start_data.password = menudata.password;
@@ -523,14 +519,15 @@ bool ClientLauncher::launch_game(std::string &error_message,
 	if (!start_data.isSinglePlayer() && start_data.name.empty()) {
 		error_message = gettext("Please choose a name!");
 		errorstream << error_message << std::endl;
+		error_message.clear();
 
-#ifdef __EMSCRIPTEN__
-       	start_data.name = std::string("Guest") + itos(myrand_range(100000, 999999));
-		//resolve(false);
-		//return;
-#else
-		return false;
+		// fm:
+		auto num_add = 0;
+#if __EMSCRIPTEN__
+		num_add = 1000000;
 #endif
+       	start_data.name = std::string("Guest") + itos(myrand_range(num_add + 100000, num_add + 999999));
+		// ===
 	}
 
 	// If using simple singleplayer mode, override
