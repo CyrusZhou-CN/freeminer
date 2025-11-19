@@ -140,12 +140,18 @@ public:
 	NetworkPacket &operator<<(v3s64 src);
 
 	NetworkPacket &operator>>(double &dst);
-	NetworkPacket &operator<<(double src);
+	NetworkPacket &operator<<(const double src);
 
 	NetworkPacket &operator>>(v3d &dst);
-	NetworkPacket &operator<<(v3d src);
+	NetworkPacket &operator<<(const v3d src);
 
-#if USE_OPOS64
+	NetworkPacket &operator>>(long double &dst);
+	NetworkPacket &operator<<(const long double src);
+
+	NetworkPacket &operator>>(v3f128 &dst);
+	NetworkPacket &operator<<(const v3f128 src);
+
+#if USE_OPOS64 == 64
 	NetworkPacket &operator>>(v3opos_t &dst);
 	NetworkPacket &operator<<(v3opos_t src);
 #endif

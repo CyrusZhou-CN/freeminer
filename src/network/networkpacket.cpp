@@ -6,6 +6,7 @@
 #include <sstream>
 #include "log.h"
 #include "networkexceptions.h"
+#include "util/numeric.h"
 #include "util/serialize.h"
 #include "networkprotocol.h"
 
@@ -624,7 +625,7 @@ NetworkPacket& NetworkPacket::operator>>(v3d& dst)
 	return *this;
 }
 
-NetworkPacket& NetworkPacket::operator<<(v3d src)
+NetworkPacket& NetworkPacket::operator<<(const v3d src)
 {
 	*this << (double)src.X;
 	*this << (double)src.Y;
@@ -632,7 +633,7 @@ NetworkPacket& NetworkPacket::operator<<(v3d src)
 	return *this;
 }
 
-#if USE_OPOS64
+#if USE_OPOS64 == 64
 NetworkPacket& NetworkPacket::operator>>(v3opos_t& dst)
 {
 	if (m_proto_ver < PROTOCOL_VERSION_32BIT) {
@@ -651,7 +652,28 @@ NetworkPacket& NetworkPacket::operator>>(v3opos_t& dst)
 }
 #endif
 
-#if USE_OPOS64
+NetworkPacket& NetworkPacket::operator<<(const long double src)
+{
+	checkDataSize(sizeof(src));
+
+	writeF128(&m_data[m_read_offset], src);
+
+	m_read_offset += sizeof(src);
+	return *this;
+}
+
+
+NetworkPacket& NetworkPacket::operator>>(long double& dst)
+{
+	checkReadOffset(m_read_offset, sizeof(dst));
+
+	dst = readF128(&m_data[m_read_offset]);
+
+	m_read_offset += sizeof(dst);
+	return *this;
+}
+
+#if USE_OPOS64 == 64
 NetworkPacket& NetworkPacket::operator<<(v3opos_t src)
 {
 	if (m_proto_ver < PROTOCOL_VERSION_32BIT) {
@@ -665,3 +687,22 @@ NetworkPacket& NetworkPacket::operator<<(v3opos_t src)
 	return *this;
 }
 #endif
+
+NetworkPacket& NetworkPacket::operator>>(v3f128& dst)
+{
+	checkReadOffset(m_read_offset, sizeof(dst));
+
+	dst = readV3F128(&m_data[m_read_offset]);
+
+	m_read_offset += sizeof(dst);
+	return *this;
+}
+
+NetworkPacket& NetworkPacket::operator<<(const v3f128 src)
+{
+	*this << (long double)src.X;
+	*this << (long double)src.Y;
+	*this << (long double)src.Z;
+	return *this;
+}
+

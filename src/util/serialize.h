@@ -4,14 +4,13 @@
 
 #pragma once
 
-#include "irr_v3d.h"
 #include "irrlichttypes_bloated.h"
 #include "exceptions.h" // for SerializationError
 #include "ieee_float.h"
-#include "network/networkprotocol.h"
-#include "numeric.h"
 
 #include "config.h"
+#include "network/networkprotocol.h"
+#include "util/numeric.h"
 #include <cstring> // for memcpy
 #include <cassert>
 #include <iostream>
@@ -417,6 +416,34 @@ inline void writeV3S64(u8 *data, v3s64 p)
 	writeS64(&data[8], p.Z);
 }
 
+inline long double readF128(const u8 *data)
+{
+	long double val;
+	memcpy(&val, data, 16);
+	return val;
+}
+
+inline v3f128 readV3F128(const u8 *data)
+{
+	v3f128 p;
+	p.X = readF128(&data[0]);
+	p.Y = readF128(&data[16]);
+	p.Z = readF128(&data[32]);
+	return p;
+}
+
+inline void writeF128(u8 *data, long double i)
+{
+	memcpy(data, &i, 16);
+}
+
+inline void writeV3F128(u8 *data, v3f128 p)
+{
+	writeF128(&data[0], p.X);
+	writeF128(&data[16], p.Y);
+	writeF128(&data[32], p.Z);
+}
+
 ////
 //// Iostream wrapper for data read/write
 ////
@@ -478,7 +505,8 @@ MAKE_STREAM_WRITE_FXN(video::SColor, ARGB8, 4);
 MAKE_STREAM_READ_FXN(v3d,   V3F64,   24);
 MAKE_STREAM_READ_FXN(v3s64, V3S64,   24);
 MAKE_STREAM_WRITE_FXN(v3s64, V3S64,   24);
-//
+MAKE_STREAM_READ_FXN(v3f128, V3F128,  48);
+MAKE_STREAM_WRITE_FXN(v3f128, V3F128, 48);
 
 inline pos_t readPOS(std::istream &is, const u16 proto_ver = 0) {
 #if USE_POS32 == 64
@@ -537,7 +565,11 @@ inline void writeV3Pos(std::ostream &os, v3pos_t p, const u16 proto_ver = 0) {
 }
 
 inline v3opos_t readV3O(std::istream &is, const u16 proto_ver = 0) {
-#if USE_OPOS64
+#if USE_OPOS64 == 128
+	if (proto_ver >= PROTOCOL_VERSION_32BIT)
+	    return readV3F128(is);
+    return v3fToOpos(readV3F32(is));
+#elif USE_OPOS64
 	if (proto_ver >= PROTOCOL_VERSION_32BIT)
 	    return readV3F64(is);
     return v3fToOpos(readV3F32(is));
@@ -547,7 +579,11 @@ inline v3opos_t readV3O(std::istream &is, const u16 proto_ver = 0) {
 }
 
 inline void writeV3O(std::ostream &os, v3opos_t p, const u16 proto_ver = 0) {
-#if USE_OPOS64
+#if USE_OPOS64 == 128
+	if (proto_ver >= PROTOCOL_VERSION_32BIT)
+	    return writeV3F128(os, p);
+    return writeV3F32(os, oposToV3f(p));
+#elif USE_OPOS64
 	if (proto_ver >= PROTOCOL_VERSION_32BIT)
 	    return writeV3F64(os, p);
     return writeV3F32(os, oposToV3f(p));

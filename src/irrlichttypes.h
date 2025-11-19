@@ -45,7 +45,9 @@ using pos_t = s16;
 using bpos_t = s16;
 #endif
 
-#if USE_OPOS64
+#if USE_OPOS64 == 128
+using opos_t = long double;
+#elif USE_OPOS64
 // Object position
 using opos_t = double;
 #else

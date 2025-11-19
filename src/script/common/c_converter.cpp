@@ -95,15 +95,6 @@ void push_v3f(lua_State *L, v3f p)
 	lua_call(L, 3, 1);
 }
 
-void push_v3f(lua_State *L, v3d p)
-{
-	lua_rawgeti(L, LUA_REGISTRYINDEX, CUSTOM_RIDX_PUSH_VECTOR);
-	lua_pushnumber(L, p.X);
-	lua_pushnumber(L, p.Y);
-	lua_pushnumber(L, p.Z);
-	lua_call(L, 3, 1);
-}
-
 void push_v2f(lua_State *L, v2f p)
 {
 	lua_createtable(L, 0, 2);
@@ -201,15 +192,6 @@ v3d read_v3d(lua_State *L, int index)
 	return v3d(x, y, z);
 }
 
-v3opos_t read_v3o(lua_State *L, int index)
-{
-#if USE_OPOS64
-	return read_v3d(L, index);
-#else
-	return read_v3f(L, index);
-#endif
-}
-
 v3d check_v3d(lua_State *L, int index)
 {
 	read_v3_aux(L, index);
@@ -245,29 +227,9 @@ void pushFloatPos(lua_State *L, v3f p)
 	push_v3f(L, p);
 }
 
-void pushFloatPos(lua_State *L, v3d p)
-{
-	p /= BS;
-	push_v3f(L, p);
-}
-
 v3f checkFloatPos(lua_State *L, int index)
 {
 	return check_v3f(L, index) * BS;
-}
-
-v3opos_t check_v3o(lua_State *L, int index)
-{
-#if USE_OPOS64
-	return check_v3d(L, index);
-#else
-	return check_v3f(L, index);
-#endif
-}
-
-v3opos_t checkOposPos(lua_State *L, int index)
-{
-	return check_v3o(L, index) * BS;
 }
 
 void push_v3s16(lua_State *L, v3s16 p)
@@ -743,4 +705,91 @@ v3pos_t check_v3pos(lua_State *L, int index)
 	// Correct rounding at <0
 	v3d pf = check_v3d(L, index);
 	return doubleToPos(pf, 1.0);
+}
+
+
+v3f128 check_v3f128(lua_State *L, int index)
+{
+	read_v3_aux(L, index);
+	CHECK_POS_COORD(-3, "x");
+	CHECK_POS_COORD(-2, "y");
+	CHECK_POS_COORD(-1, "z");
+	long double x = lua_tonumber(L, -3);
+	long double y = lua_tonumber(L, -2);
+	long double z = lua_tonumber(L, -1);
+	lua_pop(L, 3);
+	CHECK_FLOAT(x, "x");
+	CHECK_FLOAT(y, "y");
+	CHECK_FLOAT(z, "z");
+	return v3f128(x, y, z);
+}
+
+void push_v3f(lua_State *L, v3d p)
+{
+	lua_rawgeti(L, LUA_REGISTRYINDEX, CUSTOM_RIDX_PUSH_VECTOR);
+	lua_pushnumber(L, p.X);
+	lua_pushnumber(L, p.Y);
+	lua_pushnumber(L, p.Z);
+	lua_call(L, 3, 1);
+}
+
+void push_v3f(lua_State *L, v3f128 p)
+{
+	lua_rawgeti(L, LUA_REGISTRYINDEX, CUSTOM_RIDX_PUSH_VECTOR);
+	lua_pushnumber(L, p.X);
+	lua_pushnumber(L, p.Y);
+	lua_pushnumber(L, p.Z);
+	lua_call(L, 3, 1);
+}
+
+void pushFloatPos(lua_State *L, v3d p)
+{
+	p /= BS;
+	push_v3f(L, p);
+}
+
+void pushFloatPos(lua_State *L, v3f128 p)
+{
+	p /= BS;
+	push_v3f(L, p);
+}
+
+v3f128 read_v3f128(lua_State *L, int index)
+{
+	read_v3_aux(L, index);
+	CHECK_POS_COORD2(-3, "x");
+	CHECK_POS_COORD2(-2, "y");
+	CHECK_POS_COORD2(-1, "z");
+	long double x = lua_tonumber(L, -3);
+	long double y = lua_tonumber(L, -2);
+	long double z = lua_tonumber(L, -1);
+	lua_pop(L, 3);
+	return v3f128(x, y, z);
+}
+
+v3opos_t read_v3o(lua_State *L, int index)
+{
+#if USE_OPOS64 == 128
+	return read_v3f128(L, index);
+#elif USE_OPOS64
+	return read_v3d(L, index);
+#else
+	return read_v3f(L, index);
+#endif
+}
+
+v3opos_t check_v3o(lua_State *L, int index)
+{
+#if USE_OPOS64 == 128
+	return check_v3f128(L, index);
+#elif USE_OPOS64
+	return check_v3d(L, index);
+#else
+	return check_v3f(L, index);
+#endif
+}
+
+v3opos_t checkOposPos(lua_State *L, int index)
+{
+	return check_v3o(L, index) * BS;
 }
