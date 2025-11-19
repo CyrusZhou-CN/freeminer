@@ -52,13 +52,6 @@ PlayerSAO::PlayerSAO(ServerEnvironment *env_, RemotePlayer *player_, session_t p
 		m_armor_groups["immortal"] = 1;
 }
 
-PlayerSAO::~PlayerSAO()
-{
-	/*if (!m_player)
-		return;
-	--m_player->refs;*/
-}
-
 void PlayerSAO::finalize(RemotePlayer *player, const std::set<std::string> &privs)
 {
 	assert(player);

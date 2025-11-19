@@ -19,6 +19,7 @@
 #include "content_mapnode.h"  // For legacy name-id mapping
 #include "content_nodemeta.h" // For legacy deserialization
 #include "serialization.h"
+#include "util/msgpack_serialize.h"
 #if CHECK_CLIENT_BUILD()
 #include "client/mapblock_mesh.h"
 #endif
@@ -247,6 +248,12 @@ MapNode MapBlock::getNodeTry(const v3pos_t &p)
 		return ignoreNode;
 	return getNodeNoLock(p);
 }
+
+constexpr auto MAPBLOCK_DATA{0};
+enum
+{
+	MAPBLOCK_LIGHT_POINTS
+};
 
 // ==
 
@@ -622,7 +629,12 @@ void MapBlock::serialize(std::ostream &os_compressed, u8 version, bool disk, int
 		infostream<<" serialize not generated block"<<std::endl;
 	}
 
+// freeminer
+	if(!m_light_points.empty()) {
+		flags |= (1 << 7);
+	}
 	const auto lock = lock_shared_rec();
+// =========
 
 	writeU8(os, flags);
 	if (version >= 27) {
@@ -709,6 +721,14 @@ void MapBlock::serialize(std::ostream &os_compressed, u8 version, bool disk, int
 			m_node_timers.serialize(os, version);
 		}
 	}
+
+	// freeminer
+	if (flags & (1 << 7)) {
+		MSGPACK_PACKET_INIT((int)MAPBLOCK_DATA, 1);
+		PACK(MAPBLOCK_LIGHT_POINTS, m_light_points);
+		os_raw << serializeString32(std::string_view{buffer.data(), buffer.size()});
+	}
+	// =========
 
 	if (version >= 29) {
 		// now compress the whole thing
@@ -891,6 +911,20 @@ bool MapBlock::deSerialize(std::istream &in_compressed, u8 version, bool disk)
 		}
 
 		analyzeContent();
+	}
+
+	if (flags & (1 << 7)) {
+		std::string data = deSerializeString32(is);
+		if (!data.empty()) {
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, data.data(), data.size());
+			auto &obj = msg.get();
+			auto packet = obj.as<MsgpackPacket>();
+			const auto it = packet.find(MAPBLOCK_LIGHT_POINTS);
+			if (it != packet.end()) {
+				it->second.convert(m_light_points);
+			}
+		}
 	}
 
 	TRACESTREAM(<<"MapBlock::deSerialize "<<getPos()
