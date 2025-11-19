@@ -537,8 +537,8 @@ public:
 	}
 
 	// Set to content type of a node if the block consists solely of nodes of one type, otherwise set to CONTENT_IGNORE
-	std::atomic<content_t> content_only{CONTENT_IGNORE};
-	u8 content_only_param1{}, content_only_param2{};
+	//std::atomic<content_t> content_only{CONTENT_IGNORE};
+	//u8 content_only_param1{}, content_only_param2{};
 	bool analyzeContent();
 	std::mutex m_usage_timer_mutex;
 
@@ -635,7 +635,9 @@ private:
 	 * fragmentation (the array is exactly 16K, or exactly 4 bytes for a "monoblock"),
 	 * CPU caches and/or optimizability of algorithms working on this array.
 	 */
+public:
 	MapNode *data = nullptr;
+private:
 
 	// provides the item and node definitions
 	IGameDef *m_gamedef;
@@ -650,6 +652,7 @@ private:
 	 * For "monoblocks", the whole block is filled with the same node, only this node is stored.
 	 * (For reduced memory usage)
 	 */
+public:
 	bool m_is_mono_block;
 public:
 	//// ABM optimizations ////

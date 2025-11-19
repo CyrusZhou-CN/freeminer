@@ -163,6 +163,9 @@ void MapBlock::pushElementsToCircuit(Circuit *circuit)
 
 bool MapBlock::analyzeContent()
 {
+	/*
+    // TODO: really need here?
+
 	const auto lock = try_lock_shared_rec();
 	if (!lock->owns_lock())
 		return false;
@@ -179,7 +182,9 @@ bool MapBlock::analyzeContent()
 		}
 	}
 	return true;
-}
+	*/
+	return true;
+}	
 
 const MapBlock::mesh_type empty_mesh;
 #if CHECK_CLIENT_BUILD()
@@ -642,8 +647,8 @@ void MapBlock::serialize(std::ostream &os_compressed, u8 version, bool disk, int
 	}
 
 	// fmtodo: check version and dont pack data if more than 20150427 or 0.4.12.7+
-	if (!disk && use_content_only && content_only != CONTENT_IGNORE)
-		return;
+//	if (!disk && use_content_only && m_is_mono_block)
+//		return;
 
 	/*
 		Bulk node data
@@ -794,22 +799,28 @@ bool MapBlock::deSerialize(std::istream &in_compressed, u8 version, bool disk)
 	}
 
 	if (!m_generated) {
-		static thread_local const auto fix_not_generated = g_settings->getBool("fix_not_generated");
-		if (!fix_not_generated)
+		static thread_local const auto fix_not_generated =
+				g_settings->getBool("fix_not_generated");
+		if (!fix_not_generated) {
+			errorstream << "MapBlock::deSerialize(): deserialize not generated block "
+						<< getPos() << std::endl;
+		}
 
-		errorstream<<"MapBlock::deSerialize(): deserialize not generated block "<<getPos()<<std::endl;
-
-		if (disk && fix_not_generated) m_generated = true; else 
-
-		return false;
+		if (disk && fix_not_generated) {
+			m_generated = true;
+		} else {
+			return false;
+		}
 	}
 
-	if (!disk && content_only != CONTENT_IGNORE) {
+/*
+	if (!disk && m_is_mono_block) {
 		auto n = MapNode(content_only, content_only_param1, content_only_param2);
 		for (u32 i = 0; i < MAP_BLOCKSIZE*MAP_BLOCKSIZE*MAP_BLOCKSIZE; i++)
 			data[i] = n;
 		return true;
 	}
+*/
 
 	TRACESTREAM(<<"MapBlock::deSerialize "<<getPos()
 			<<": Bulk node data"<<std::endl);
