@@ -590,11 +590,50 @@ NetworkPacket& NetworkPacket::operator>>(v3d& dst)
 	return *this;
 }
 
-NetworkPacket& NetworkPacket::operator<<(v3d src)
+NetworkPacket& NetworkPacket::operator<<(const v3d src)
 {
 	*this << (double)src.X;
 	*this << (double)src.Y;
 	*this << (double)src.Z;
+	return *this;
+}
+
+NetworkPacket& NetworkPacket::operator<<(const long double src)
+{
+	checkDataSize(sizeof(src));
+
+	writeF128(&m_data[m_read_offset], src);
+
+	m_read_offset += sizeof(src);
+	return *this;
+}
+
+
+NetworkPacket& NetworkPacket::operator>>(long double& dst)
+{
+	checkReadOffset(m_read_offset, sizeof(dst));
+
+	dst = readF128(&m_data[m_read_offset]);
+
+	m_read_offset += sizeof(dst);
+	return *this;
+}
+
+NetworkPacket& NetworkPacket::operator>>(v3f128& dst)
+{
+	checkReadOffset(m_read_offset, sizeof(dst));
+
+	dst = readV3F128(&m_data[m_read_offset]);
+
+	m_read_offset += sizeof(dst);
+	return *this;
+}
+
+NetworkPacket& NetworkPacket::operator<<(const v3f128 src)
+{
+	*this << (long double)src.X;
+	*this << (long double)src.Y;
+	*this << (long double)src.Z;
 	return *this;
 }
 

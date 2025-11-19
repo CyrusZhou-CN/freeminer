@@ -383,6 +383,15 @@ inline v3pos_t floatToInt(v3d p, f32 d)
 }
 
 [[nodiscard]]
+inline v3pos_t floatToInt(v3f128 p, f32 d)
+{
+	return v3pos_t(
+		(p.X + (p.X > 0 ? d / 2 : -d / 2)) / d,
+		(p.Y + (p.Y > 0 ? d / 2 : -d / 2)) / d,
+		(p.Z + (p.Z > 0 ? d / 2 : -d / 2)) / d);
+}
+
+[[nodiscard]]
 inline v3pos_t oposToPos(v3opos_t p, double d)
 {
 	return v3pos_t(

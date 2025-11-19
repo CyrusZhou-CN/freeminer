@@ -4,11 +4,9 @@
 
 #pragma once
 
-#include "irr_v3d.h"
 #include "irrlichttypes_bloated.h"
 #include "exceptions.h" // for SerializationError
 #include "ieee_float.h"
-#include "numeric.h"
 
 #include "config.h"
 #include <cstring> // for memcpy
@@ -416,6 +414,34 @@ inline void writeV3S64(u8 *data, v3s64 p)
 	writeS64(&data[8], p.Z);
 }
 
+inline long double readF128(const u8 *data)
+{
+	long double val;
+	memcpy(&val, data, 16);
+	return val;
+}
+
+inline v3f128 readV3F128(const u8 *data)
+{
+	v3f128 p;
+	p.X = readF128(&data[0]);
+	p.Y = readF128(&data[16]);
+	p.Z = readF128(&data[32]);
+	return p;
+}
+
+inline void writeF128(u8 *data, long double i)
+{
+	memcpy(data, &i, 16);
+}
+
+inline void writeV3F128(u8 *data, v3f128 p)
+{
+	writeF128(&data[0], p.X);
+	writeF128(&data[16], p.Y);
+	writeF128(&data[32], p.Z);
+}
+
 ////
 //// Iostream wrapper for data read/write
 ////
@@ -477,6 +503,8 @@ MAKE_STREAM_WRITE_FXN(video::SColor, ARGB8, 4);
 MAKE_STREAM_READ_FXN(v3d,   V3F64,   24);
 MAKE_STREAM_READ_FXN(v3s64, V3S64,   24);
 MAKE_STREAM_WRITE_FXN(v3s64, V3S64,   24);
+MAKE_STREAM_READ_FXN(v3f128, V3F128,  48);
+MAKE_STREAM_WRITE_FXN(v3f128, V3F128, 48);
 
 inline pos_t readPOS(std::istream &is) {
 #if USE_POS32 == 64
@@ -519,7 +547,9 @@ inline void writeV3POS(std::ostream &os, v3pos_t p) {
 }
 
 inline v3opos_t readV3O(std::istream &is) {
-#if USE_OPOS64
+#if USE_OPOS64 == 128
+	return readV3F128(is);
+#elif USE_OPOS64
     return readV3F64(is);
 #else
     return readV3F32(is);
@@ -527,7 +557,9 @@ inline v3opos_t readV3O(std::istream &is) {
 }
 
 inline void writeV3O(std::ostream &os, v3opos_t p) {
-#if USE_OPOS64
+#if USE_OPOS64	== 128
+	return writeV3F128(os, p);
+#elif USE_OPOS64
     return writeV3F64(os, p);
 #else
     return writeV3F32(os, p);
