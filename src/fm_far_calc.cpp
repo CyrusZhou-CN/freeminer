@@ -220,7 +220,7 @@ struct tree_params_t
 #if USE_POS32
 	const int16_t tree_pow = FARMESH_STEP_MAX;
 #else
-	const auto tree_pow = 12;
+	const int16_t tree_pow = 12;
 #endif
 	const int tree_size = 1 << tree_pow;
 	const int16_t tree_align = tree_pow - 1;
