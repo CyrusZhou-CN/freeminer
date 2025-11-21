@@ -301,12 +301,12 @@ pos_t MapgenEarth::get_height(pos_t x, pos_t z)
 	return ceil(y / scale.Y) - center.Y;
 }
 
-int MapgenEarth::getSpawnLevelAtPoint(v2pos_t p)
+pos_t MapgenEarth::getSpawnLevelAtPoint(v2pos_t p)
 {
 	return std::max(2, get_height(p.X, p.Y) + 2);
 }
 
-int MapgenEarth::getGroundLevelAtPoint(v2pos_t p)
+pos_t MapgenEarth::getGroundLevelAtPoint(v2pos_t p)
 {
 	return get_height(p.X, p.Y); // + MGV6_AVERAGE_MUD_AMOUNT;
 }
