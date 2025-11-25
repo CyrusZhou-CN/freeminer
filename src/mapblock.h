@@ -763,3 +763,7 @@ std::string analyze_block(MapBlock *block);
 using MapBlockPtr = std::shared_ptr<MapBlock>;
 // using MapBlockPtr = MapBlock *;
 
+inline std::string analyze_block(const MapBlockPtr &block)
+{
+	return analyze_block(block.get());
+};
