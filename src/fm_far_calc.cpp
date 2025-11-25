@@ -211,41 +211,49 @@ const auto nearest_pow2 = [](const int v) -> int8_t {
 	return n;
 };
 
-const auto farmesh_to_tree_pow = [](const int farmesh) -> int8_t {
-	return nearest_pow2(farmesh) - 1; // -2 ? TODO: test and tune
-};
-
 struct tree_params_t
 {
-#if USE_POS32
-	const int16_t tree_pow = FARMESH_STEP_MAX;
-#else
-	const int16_t tree_pow = 12;
-#endif
+	const int16_t tree_pow;
 	const int tree_size = 1 << tree_pow;
 	const int16_t tree_align = tree_pow - 1;
 	const int tree_align_size = 1 << (tree_align);
 	const int16_t external_pow = tree_pow - 2;
+
+#if USE_POS32
+	static constexpr int16_t tree_pow_max = FARMESH_STEP_MAX;
+#else
+	static constexpr int16_t tree_pow_max = 12;
+#endif
 };
 
+const auto farmesh_to_tree_pow = [](const int farmesh) {
+	return std::min<int16_t>(tree_params_t::tree_pow_max,
+			nearest_pow2(farmesh) - 1); // -2 ? TODO: test and tune
+};
+
+child_t tree_params_to_child(
+		const tree_params_t &tree_params, const v3bpos_t &ppos, pos_t two_d = {})
+{
+	return {.pos = v3tpos_t((((tpos_t)ppos.X >> tree_params.tree_align)
+									<< tree_params.tree_align) -
+									(tree_params.tree_align_size >> 1),
+					two_d
+							?: (((tpos_t)(ppos.Y) >> tree_params.tree_align)
+									   << tree_params.tree_align) -
+									   (tree_params.tree_align_size >> 1),
+					(((tpos_t)(ppos.Z) >> tree_params.tree_align)
+							<< tree_params.tree_align) -
+							(tree_params.tree_align_size >> 1)),
+			.size{tree_params.tree_size}};
+}
 block_step_t getFarStepCellSize(const MapDrawControl &draw_control, const v3bpos_t &ppos,
 		const v3bpos_t &blockpos, uint8_t cell_size_pow)
 {
 	const auto blockpos_aligned_cell = align_shift(blockpos, cell_size_pow);
 	const tree_params_t tree_params{.tree_pow{farmesh_to_tree_pow(draw_control.farmesh)}};
 
-	const auto start = child_t{.pos = v3tpos_t(
-									   // TODO: cast to type larger than pos_t_type
-									   (((tpos_t)ppos.X >> tree_params.tree_align)
-											   << tree_params.tree_align) -
-											   (tree_params.tree_align_size >> 1),
-									   (((tpos_t)ppos.Y >> tree_params.tree_align)
-											   << tree_params.tree_align) -
-											   (tree_params.tree_align_size >> 1),
-									   (((tpos_t)ppos.Z >> tree_params.tree_align)
-											   << tree_params.tree_align) -
-											   (tree_params.tree_align_size >> 1)),
-			.size = tree_params.tree_size};
+	const auto start = tree_params_to_child(tree_params, ppos);
+
 	const auto res = find(
 			{blockpos_aligned_cell.X, blockpos_aligned_cell.Y, blockpos_aligned_cell.Z},
 			{ppos.X, ppos.Y, ppos.Z}, start, cell_size_pow, draw_control.farmesh_quality);
@@ -284,17 +292,7 @@ v3bpos_t getFarActual(const v3bpos_t &blockpos, const v3bpos_t &ppos, block_step
 	const auto blockpos_aligned_cell =
 			align_shift(blockpos, cell_size_pow.value_or(draw_control.cell_size_pow));
 	tree_params_t tree_params{.tree_pow{farmesh_to_tree_pow(draw_control.farmesh)}};
-
-	const auto start = child_t{.pos = v3tpos_t((((tpos_t)ppos.X >> tree_params.tree_align)
-													   << tree_params.tree_align) -
-													   (tree_params.tree_align_size >> 1),
-									   (((tpos_t)ppos.Y >> tree_params.tree_align)
-											   << tree_params.tree_align) -
-											   (tree_params.tree_align_size >> 1),
-									   (((tpos_t)ppos.Z >> tree_params.tree_align)
-											   << tree_params.tree_align) -
-											   (tree_params.tree_align_size >> 1)),
-			.size = tree_params.tree_size};
+	const auto start = tree_params_to_child(tree_params, ppos);
 	const auto res = find(
 			{blockpos_aligned_cell.X, blockpos_aligned_cell.Y, blockpos_aligned_cell.Z},
 			{ppos.X, ppos.Y, ppos.Z}, start,
@@ -401,19 +399,7 @@ void runFarAll(const v3bpos_t &ppos, uint8_t cell_size_pow, int farmesh,
 {
 
 	tree_params_t tree_params{.tree_pow{farmesh_to_tree_pow(farmesh)}};
-	const auto start =
-			child_t{.pos = v3tpos_t((((tpos_t)ppos.X >> tree_params.tree_align)
-											<< tree_params.tree_align) -
-											(tree_params.tree_align_size >> 1),
-							two_d
-									?: (((tpos_t)(ppos.Y) >> tree_params.tree_align)
-											   << tree_params.tree_align) -
-											   (tree_params.tree_align_size >> 1),
-							(((tpos_t)(ppos.Z) >> tree_params.tree_align)
-									<< tree_params.tree_align) -
-									(tree_params.tree_align_size >> 1)),
-					.size{tree_params.tree_size}};
-
+	const auto start = tree_params_to_child(tree_params, ppos, two_d);
 	const auto func_convert = [&func](const child_t &child) {
 		return func(v3bpos_t(child.pos.X, child.pos.Y, child.pos.Z), child.size);
 	};
