@@ -22,6 +22,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include "fm_far_calc.h"
 #include <cstdint>
 #include <optional>
+#include <bit>
 
 #include "client/clientmap.h"
 #include "irr_v3d.h"
@@ -69,6 +70,13 @@ block_step_t getLodStep(const MapDrawControl &draw_control,
 	return 0;
 };
 
+int rangeToStep(const int range)
+{
+	return log(range) / log(2);
+	const unsigned int r = static_cast<unsigned int>(range);
+	return r ? static_cast<int>(std::bit_width(r) - 1) : 0;
+};
+
 block_step_t getFarStepBad(const MapDrawControl &draw_control,
 		const v3bpos_t &playerblockpos, const v3bpos_t &blockpos)
 {
@@ -83,16 +91,16 @@ block_step_t getFarStepBad(const MapDrawControl &draw_control,
 	if (range <= 1)
 		return 1;
 
-	int skip = log(range) / log(2);
-	//skip += log(draw_control.cell_size) / log(2);
+	int skip = rangeToStep(range);
+	//skip += rangeToStep(draw_control.cell_size);
 	range = radius_box(v3pos_t((playerblockpos.X >> skip) << skip,
 							   (playerblockpos.Y >> skip) << skip,
 							   (playerblockpos.Z >> skip) << skip),
 			v3pos_t((blockpos.X >> skip) << skip, (blockpos.Y >> skip) << skip,
 					(blockpos.Z >> skip) << skip));
-	range >>= next_step + int(log(draw_control.cell_size) / log(2)); // TODO: configurable
+	range >>= next_step + rangeToStep(draw_control.cell_size); // TODO: configurable
 	if (range > 1) {
-		skip = log(range) / log(2);
+		skip = rangeToStep(range);
 	}
 	if (skip > FARMESH_STEP_MAX)
 		skip = FARMESH_STEP_MAX;
@@ -269,7 +277,7 @@ block_step_t getFarStepCellSize(const MapDrawControl &draw_control, const v3bpos
 			return {};
 #endif
 */
-		const auto step1 = int(log(res->size) / log(2));
+		const auto step1 = rangeToStep(res->size);
 		if (cell_size_pow >= step1) {
 			return 0;
 		}
