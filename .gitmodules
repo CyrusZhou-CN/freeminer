@@ -28,3 +28,12 @@
 [submodule "src/mapgen/earth/arnis-cpp"]
 	path = src/mapgen/earth/arnis-cpp
 	url = https://github.com/freeminer/arnis-cpp
+[submodule "src/mapgen/earth/osmium-tool"]
+	path = src/mapgen/earth/osmium-tool
+	url = https://github.com/osmcode/osmium-tool.git
+[submodule "src/mapgen/earth/libosmium"]
+	path = src/mapgen/earth/libosmium
+	url = https://github.com/osmcode/libosmium.git
+[submodule "src/mapgen/earth/json"]
+	path = src/mapgen/earth/json
+	url = https://github.com/nlohmann/json.git
