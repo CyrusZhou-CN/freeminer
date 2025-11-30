@@ -101,9 +101,9 @@ endif()
 
 option(ENABLE_OSMIUM "Enable Osmium" 1)
 
-if(ENABLE_OSMIUM)
-    find_path(OSMIUM_INCLUDE_DIR osmium/osm.hpp)
-endif()
+# if(ENABLE_OSMIUM)
+#     find_path(OSMIUM_INCLUDE_DIR osmium/osm.hpp)
+# endif()
 
 if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/CMakeLists.txt))
     set(Boost_USE_STATIC_LIBS ${BUILD_STATIC_LIBS})
@@ -171,8 +171,8 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 ${OSMIUM_TOOL_SRC}extract/strategy_simple.cpp
                 ${OSMIUM_TOOL_SRC}extract/strategy_smart.cpp
             )
-
         endif()
+        message(STATUS "Using osmiumtool ${USE_OSMIUM_TOOL} : ${OSMIUM_TOOL_LIBRARY}")
     endif()
 endif()
 
