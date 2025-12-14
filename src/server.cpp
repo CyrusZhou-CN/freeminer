@@ -696,7 +696,7 @@ void Server::start()
 #if USE_POS32
 				<< " map" << USE_POS32 << " \t"
 #endif
-#if USE_OPOS32
+#if USE_OPOS64
 				<< " obj" << USE_OPOS64 << " \t"
 #endif
 #if ENABLE_THREADS
