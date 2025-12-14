@@ -49,6 +49,8 @@ endif()
 option(USE_POS32 "32 bit node/block positions (experimental, not compatible with 16 bit)" 32)
 if (USE_POS32)
 	option(USE_OPOS64 "64 bit object positions (experimental, not compatible with 32 bit)" 64)
+else()
+	option(USE_OPOS64 "64 bit object positions (experimental, not compatible with 32 bit)" 0)
 endif()
 
 option(PRECOMPILE_HEADERS "Precompile some headers (experimental; requires CMake 3.16 or later)" FALSE)
