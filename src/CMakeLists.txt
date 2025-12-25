@@ -47,7 +47,7 @@ if(NOT (BUILD_CLIENT OR BUILD_SERVER))
 	set(BUILD_SERVER TRUE)
 endif()
 
-option(USE_POS32 "32 bit positions (experimental, not compatible with 16 bit)" FALSE)
+set(USE_POS32 "32" CACHE STRING "32 bit positions (experimental, not compatible with 16 bit)")
 
 option(PRECOMPILE_HEADERS "Precompile some headers (experimental; requires CMake 3.16 or later)" FALSE)
 set(PRECOMPILED_HEADERS_PATH "" CACHE FILEPATH "Path to a file listing all headers to precompile")
