@@ -522,7 +522,6 @@ MAKE_STREAM_READ_FXN(v3f128,  V3F128, 48);
 MAKE_STREAM_WRITE_FXN(v3s64,  V3S64,  24);
 MAKE_STREAM_WRITE_FXN(v3d,    V3F64,  24);
 MAKE_STREAM_WRITE_FXN(v3f128, V3F128, 48);
-MAKE_STREAM_WRITE_FXN(v3d,  V3F64,   24);
 
 inline pos_t readPOS(std::istream &is, const u16 proto_ver = 0) {
 #if USE_POS32 == 64

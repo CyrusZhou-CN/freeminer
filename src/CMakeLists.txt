@@ -201,9 +201,9 @@ if(ENABLE_REDIS)
 		set(USE_REDIS TRUE)
 		message(STATUS "Redis backend enabled.")
 		include_directories(${REDIS_INCLUDE_DIR})
-	else(REDIS_LIBRARY AND REDIS_INCLUDE_DIR)
+	else()
 		message(STATUS "Redis not found!")
-	endif(REDIS_LIBRARY AND REDIS_INCLUDE_DIR)
+	endif()
 endif(ENABLE_REDIS)
 
 
