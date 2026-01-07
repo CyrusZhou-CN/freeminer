@@ -222,7 +222,7 @@ MapgenEarth::MapgenEarth(MapgenEarthParams *params_, EmergeParams *emerge) :
 			}
 		}
 
-		if (std::filesystem::exists(heat_img)) {
+		if (std::filesystem::file_size(heat_img)) {
 			const auto lock = std::lock_guard(maps_holder->download_lock);
 			if (!maps_holder->heat_image) {
 				maps_holder->heat_image = std::make_unique<PngImage>(heat_img);
@@ -509,8 +509,10 @@ void MapgenEarth::generateBuildings()
 		}
 
 		{
-			const auto lock = std::lock_guard{maps_holder->osm_bbox_lock};
+			auto lock = std::unique_lock{maps_holder->osm_bbox_lock};
+
 			if (const auto &hdlr = maps_holder->osm_bbox.get(bbox)) {
+				lock.unlock();
 				hdlr.value()->apply(this);
 			}
 		}
