@@ -12,7 +12,6 @@
 #define MGFLAT_HILLS 0x02
 #define MGFLAT_CAVERNS 0x04
 
-class BiomeManager;
 
 extern const FlagDesc flagdesc_mapgen_flat[];
 
@@ -61,7 +60,7 @@ public:
 	virtual MapgenType getType() const { return MAPGEN_FLAT; }
 
 	virtual void makeChunk(BlockMakeData *data);
-	int getSpawnLevelAtPoint(v2pos_t p);
+	pos_t getSpawnLevelAtPoint(v2pos_t p);
 	pos_t generateTerrain();
 
 private:

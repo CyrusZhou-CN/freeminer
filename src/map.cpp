@@ -36,21 +36,24 @@ Map::Map(IGameDef *gamedef):
 Map::~Map()
 {
 	const auto lock = m_blocks.lock_unique_rec();
-/*
-	for (auto & ir : m_blocks_delete_1)
-		delete ir.first;
-	for (auto & ir : m_blocks_delete_2)
-		delete ir.first;
-	for(auto & ir : m_blocks)
-		delete ir.second;
-*/		
 	getBlockCacheFlush();
 #if WTF
-	/*
-		Free all MapSectors
-	*/
+	// Free all sectors
+	size_t used = 0;
 	for (auto &sector : m_sectors) {
+		sector.second->deleteBlocks(&used);
 		delete sector.second;
+	}
+	m_sectors.clear();
+
+	if (used > 0) {
+#ifdef NDEBUG
+		std::ostream &to = infostream;
+#else
+		std::ostream &to = warningstream;
+#endif
+		PrintInfo(to);
+		to << used << " blocks deleted despite reference count > 0. Potential bug." << std::endl;
 	}
 #endif
 }
@@ -886,17 +889,17 @@ std::map<v3bpos_t, bool> MMVManip::getCoveredBlocks() const
 		return false;
 	};
 
-	auto bpmin = getNodeBlockPos(m_area.MinEdge);
-	auto bpmax = getNodeBlockPos(m_area.MaxEdge);
+	v3bpos_t bpmin = getNodeBlockPos(m_area.MinEdge);
+	v3bpos_t bpmax = getNodeBlockPos(m_area.MaxEdge);
 
 	if (bpmin * MAP_BLOCKSIZE != m_area.MinEdge)
 		throw BaseException("MMVManip not block-aligned");
 	if ((bpmax+1) * MAP_BLOCKSIZE - v3bpos_t(1) != m_area.MaxEdge)
 		throw BaseException("MMVManip not block-aligned");
 
-	for(auto z=bpmin.Z; z<=bpmax.Z; z++)
-	for(auto y=bpmin.Y; y<=bpmax.Y; y++)
-	for(auto x=bpmin.X; x<=bpmax.X; x++) {
+	for(bpos_t z=bpmin.Z; z<=bpmax.Z; z++)
+	for(bpos_t y=bpmin.Y; y<=bpmax.Y; y++)
+	for(bpos_t x=bpmin.X; x<=bpmax.X; x++) {
 		v3bpos_t bp(x,y,z);
 		ret[bp] = check_block(bp);
 	}

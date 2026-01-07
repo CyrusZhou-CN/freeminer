@@ -10,7 +10,6 @@
 #define MGCARPATHIAN_CAVERNS 0x01
 #define MGCARPATHIAN_RIVERS  0x02
 
-class BiomeManager;
 
 extern const FlagDesc flagdesc_mapgen_carpathian[];
 
@@ -70,7 +69,7 @@ public:
 	virtual MapgenType getType() const { return MAPGEN_CARPATHIAN; }
 
 	virtual void makeChunk(BlockMakeData *data);
-	int getSpawnLevelAtPoint(v2pos_t p);
+	pos_t getSpawnLevelAtPoint(v2pos_t p);
 
 	//freeminer:
 	bool visible(const v3pos_t &p)

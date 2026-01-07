@@ -10,7 +10,6 @@
 ///////////// Mapgen Fractal flags
 #define MGFRACTAL_TERRAIN     0x01
 
-class BiomeManager;
 
 extern const FlagDesc flagdesc_mapgen_fractal[];
 
@@ -60,7 +59,7 @@ public:
 	virtual MapgenType getType() const { return MAPGEN_FRACTAL; }
 
 	virtual void makeChunk(BlockMakeData *data);
-	int getSpawnLevelAtPoint(v2pos_t p);
+	pos_t getSpawnLevelAtPoint(v2pos_t p);
 	bool getFractalAtPoint(pos_t x, pos_t y, pos_t z);
 	pos_t generateTerrain();
 

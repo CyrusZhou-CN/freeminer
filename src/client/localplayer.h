@@ -9,6 +9,7 @@
 #include "environment.h"
 #include "constants.h"
 #include "lighting.h"
+#include "util/numeric.h"
 #include <string>
 
 class Client;
@@ -17,8 +18,6 @@ class ClientEnvironment;
 struct MapNode;
 class GenericCAO;
 class ClientActiveObject;
-class ClientEnvironment;
-class IGameDef;
 struct CollisionInfo;
 struct collisionMoveResult;
 
@@ -123,7 +122,6 @@ public:
 		m_cao = toset;
 	}
 
-	u32 maxHudId() const { return hud.size(); }
 
 //freeminer:
 	bool zoom = false;

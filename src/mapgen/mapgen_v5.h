@@ -11,7 +11,6 @@
 ///////// Mapgen V5 flags
 #define MGV5_CAVERNS 0x01
 
-class BiomeManager;
 
 extern const FlagDesc flagdesc_mapgen_v5[];
 
@@ -60,8 +59,8 @@ public:
 	virtual MapgenType getType() const { return MAPGEN_V5; }
 
 	virtual void makeChunk(BlockMakeData *data);
-	int getSpawnLevelAtPoint(v2pos_t p);
-	int generateBaseTerrain();
+	pos_t getSpawnLevelAtPoint(v2pos_t p);
+	pos_t generateBaseTerrain();
 
 private:
 	Noise *noise_factor;

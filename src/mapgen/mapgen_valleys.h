@@ -21,7 +21,6 @@ Licensing changed by permission of Gael de Sailly.
 #define MGVALLEYS_VARY_RIVER_DEPTH 0x04
 #define MGVALLEYS_ALT_DRY          0x08
 
-class BiomeManager;
 class BiomeGenOriginal;
 
 extern const FlagDesc flagdesc_mapgen_valleys[];
@@ -77,7 +76,7 @@ public:
 	virtual MapgenType getType() const { return MAPGEN_VALLEYS; }
 
 	virtual void makeChunk(BlockMakeData *data);
-	int getSpawnLevelAtPoint(v2pos_t p);
+	pos_t getSpawnLevelAtPoint(v2pos_t p);
 
 	//freeminer:
 	bool visible(const v3pos_t &p) override

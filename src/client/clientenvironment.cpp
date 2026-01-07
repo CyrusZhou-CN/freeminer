@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2010-2017 celeron55, Perttu Ahola <celeron55@gmail.com>
 
+#include "constants.h"
 #include "threading/async.h"
 #include "util/serialize.h"
 #include "util/pointedthing.h"
@@ -125,11 +126,10 @@ void ClientEnvironment::step(f32 dtime, double uptime, unsigned int max_cycle_ms
 	if (dtime_max_increment * m_move_max_loop < dtime)
 		dtime_max_increment = dtime / m_move_max_loop;
 
-	static constexpr float DTIME_MAX = 2.0;
 
 	// Don't allow overly huge dtime
-	if(dtime > DTIME_MAX)
-		dtime = DTIME_MAX;
+	if(dtime > DTIME_LIMIT)
+		dtime = DTIME_LIMIT;
 
 	if (player_speed <= 0.01 && dtime < 0.1)
 		dtime_max_increment = dtime;
@@ -163,8 +163,8 @@ void ClientEnvironment::step(f32 dtime, double uptime, unsigned int max_cycle_ms
 
 				resistance_factor = 0.97; // todo maybe depend on speed; 0.96 = ~100 nps max
 				resistance_factor += (1.0 - resistance_factor) *
-									(1 - (MAX_MAP_GENERATION_LIMIT - pf.Y / BS) /
-													MAX_MAP_GENERATION_LIMIT);
+									(1 - (FARSCALE_LIMIT - pf.Y / BS) /
+													FARSCALE_LIMIT);
 			}
 
 			// Liquid floating / sinking
@@ -246,7 +246,7 @@ void ClientEnvironment::step(f32 dtime, double uptime, unsigned int max_cycle_ms
 		player_fall_factor = 1.0f + (float)addp_p / 100.0f;
 	}
 
-	if (dtime < DTIME_MAX || lplayer->getSpeed().getLength() > PLAYER_FALL_TOLERANCE_SPEED)
+	if (dtime < DTIME_LIMIT || lplayer->getSpeed().getLength() > PLAYER_FALL_TOLERANCE_SPEED)
 	for (const CollisionInfo &info : player_collisions) {
 		v3f speed_diff = info.new_speed - info.old_speed;;
 		// Handle only fall damage

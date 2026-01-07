@@ -802,6 +802,8 @@ void *EmergeThread::run()
 
 			if (!error)
 				block = finishGen(pos, &bmdata, &modified_blocks);
+			else
+				m_map->cancelBlockMake(&bmdata);
 			if (!block || error)
 				action = EMERGE_ERRORED;
 
@@ -811,7 +813,7 @@ void *EmergeThread::run()
 		runCompletionCallbacks(pos, action, bedata.callbacks);
 
 		if (block) {
-			//modified_blocks[pos] = block;
+			modified_blocks[pos] = block;
 		} else if (allow_gen) {
 			verbosestream<<"nothing generated at "<<pos<< " emerge action="<< action <<std::endl;
 		}

@@ -15,7 +15,6 @@
 #define MGV7_CAVERNS     0x08
 #define MGV7_BIOMEREPEAT 0x10 // Now unused
 
-class BiomeManager;
 
 extern const FlagDesc flagdesc_mapgen_v7[];
 
@@ -84,7 +83,7 @@ public:
 
 	virtual void makeChunk(BlockMakeData *data);
 	virtual
-	int getSpawnLevelAtPoint(v2pos_t p);
+	pos_t getSpawnLevelAtPoint(v2pos_t p);
 
 	float baseTerrainLevelAtPoint(pos_t x, pos_t z);
 	float baseTerrainLevelFromMap(int index);
