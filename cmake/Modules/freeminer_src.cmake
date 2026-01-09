@@ -4,8 +4,8 @@
 find_package(MsgPack REQUIRED)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    OPTION(ENABLE_SCTP "Enable SCTP networking (EXPERIMENTAL)" 0)
-    OPTION(USE_MULTI "Enable MT+ENET+WSS networking" 1)
+    option(ENABLE_SCTP "Enable SCTP networking (EXPERIMENTAL)" 0)
+    option(USE_MULTI "Enable MT+ENET+WSS networking" 1)
 endif()
 
 if(USE_MULTI)
@@ -17,20 +17,51 @@ if(USE_MULTI)
     endif()
 endif()
 
+option(BOOST_COMPILE "Compile boost in place" 0)
+if(BOOST_COMPILE)
+    set(BOOST_INCLUDE_LIBRARIES
+        any
+        asio
+        date_time
+        filesystem
+        lexical_cast
+        program_options
+        system
+        test
+        utility
+        variant
+        config
+    )
+    set(BOOST_ENABLE_CMAKE ON)
+
+    include(FetchContent)
+    set(FETCHCONTENT_QUIET FALSE) # Needed to print downloading progress
+    FetchContent_Declare(
+        Boost
+        GIT_REPOSITORY https://github.com/boostorg/boost.git
+        GIT_TAG boost-1.90.0
+        GIT_SHALLOW TRUE
+        OVERRIDE_FIND_PACKAGE TRUE # needed to find correct Boost
+        USES_TERMINAL_DOWNLOAD TRUE
+        GIT_PROGRESS TRUE
+    )
+    FetchContent_MakeAvailable(Boost)
+endif()
 
 if(ENABLE_WEBSOCKET OR ENABLE_WEBSOCKET_SCTP)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp/CMakeLists.txt)
         find_package(Boost)
         if(Boost_FOUND)
             include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
-            # add_subdirectory(external/websocketpp)
-            # set(WEBSOCKETPP_LIBRARY websocketpp::websocketpp)
+            #add_subdirectory(external/websocketpp)
+            #set(WEBSOCKETPP_LIBRARY websocketpp::websocketpp)
             message(STATUS "Using websocket: ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp")
             find_package(OpenSSL)
             set(WEBSOCKETPP_LIBRARY ${WEBSOCKETPP_LIBRARY} OpenSSL::SSL)
             set(USE_WEBSOCKET 1 CACHE BOOL "")
             #TODO:
             # set(USE_WEBSOCKET_SCTP 1 CACHE BOOL "")
+            set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${WEBSOCKETPP_LIBRARY})
         endif()
     else()
         #set(USE_WEBSOCKET 0)
@@ -61,8 +92,7 @@ if(ENABLE_SCTP)
     set(USE_SCTP 1)
 
     message(STATUS "Using sctp: ${CMAKE_CURRENT_SOURCE_DIR}/external/usrsctp ${SCTP_LIBRARY} SCTP_DEBUG=${SCTP_DEBUG}")
-    #else()
-    #set(USE_SCTP 0)
+    set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${SCTP_LIBRARY})
 endif()
 
 if(ENABLE_ENET)
@@ -79,6 +109,7 @@ if(ENABLE_ENET)
         include_directories(${ENET_INCLUDE_DIR})
         message(STATUS "Using enet: ${ENET_INCLUDE_DIR} ${ENET_LIBRARY}")
         set(USE_ENET 1)
+        set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${ENET_LIBRARY})
     endif()
 endif()
 
@@ -86,7 +117,7 @@ endif()
 #add_subdirectory(external/TinyTIFF/src)
 #set(TINYTIFF_LIRARY TinyTIFF)
 
-option(ENABLE_TIFF "Enable tiff (feotiff for mapgen earth)" 1)
+option(ENABLE_TIFF "Enable tiff (geotiff for mapgen earth)" 1)
 if(ENABLE_TIFF AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/libtiff/CMakeLists.txt)
     set(tiff-tools 0 CACHE INTERNAL "")
     set(tiff-tests 0 CACHE INTERNAL "")
@@ -97,6 +128,7 @@ if(ENABLE_TIFF AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/libtiff/CMakeList
     include_directories(BEFORE SYSTEM ${TIFF_INCLUDE_DIR})
     message(STATUS "Using tiff: ${TIFF_INCLUDE_DIR} ${TIFF_LIRARY}")
     set(USE_TIFF 1)
+    set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${TIFF_LIRARY})
 endif()
 
 option(ENABLE_OSMIUM "Enable Osmium" 1)
@@ -130,8 +162,10 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
         if(EXPAT_FOUND)
             set(OSMIUM_LIRARY ${OSMIUM_LIRARY} EXPAT::EXPAT)
         endif()
+        set(OSMIUM_LIRARY ${OSMIUM_LIRARY} Boost::headers)
         set(USE_OSMIUM 1)
         message(STATUS "Using osmium: ${OSMIUM_INCLUDE_DIR} : ${OSMIUM_LIRARY}")
+        set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${OSMIUM_LIRARY})
 
         option(ENABLE_OSMIUM_TOOL "Enable Osmium tool" 1)
         if(ENABLE_OSMIUM_TOOL)
@@ -144,13 +178,10 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             include_directories(BEFORE SYSTEM ${NLOHMANN_INCLUDE_DIR})
             set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/osmium-tool/cmake/Modules/")
             add_subdirectory(mapgen/earth/osmium-tool)
-            set(OSMIUM_TOOL_LIBRARY osmium-tool-lib)
             set(OSMIUM_TOOL_SRC mapgen/earth/osmium-tool/src/)
-            add_library(${OSMIUM_TOOL_LIBRARY}
-                ${OSMIUM_TOOL_SRC}command_extract.cpp
-
+            add_library(osmium-tool-lib
                 ${PROJECT_BINARY_DIR}/${OSMIUM_TOOL_SRC}/version.cpp
-
+                ${OSMIUM_TOOL_SRC}command_extract.cpp
                 ${OSMIUM_TOOL_SRC}cmd.cpp
                 ${OSMIUM_TOOL_SRC}cmd_factory.cpp
                 ${OSMIUM_TOOL_SRC}id_file.cpp
@@ -174,6 +205,15 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 ${OSMIUM_TOOL_SRC}extract/strategy_simple.cpp
                 ${OSMIUM_TOOL_SRC}extract/strategy_smart.cpp
             )
+            target_link_libraries(osmium-tool-lib PUBLIC Boost::program_options)
+
+            find_package(BZip2)
+            find_package(EXPAT)
+            target_link_libraries(osmium-tool-lib PRIVATE BZip2::BZip2 EXPAT::EXPAT)
+
+            set(OSMIUM_TOOL_LIBRARY osmium-tool-lib)
+            set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${OSMIUM_TOOL_LIBRARY})
+
         endif()
         message(STATUS "Using osmiumtool ${USE_OSMIUM_TOOL} : ${OSMIUM_TOOL_LIBRARY}")
     endif()
@@ -249,16 +289,8 @@ set(FMcommon_SRCS ${FMcommon_SRCS}
     fm_serverenvironment.cpp
 )
 
-set(FREEMINER_COMMON_LIBRARIES
+set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES}
     ${MSGPACK_LIBRARY}
-    ${ENET_LIBRARY}
-    ${SCTP_LIBRARY}
-    ${WEBSOCKETPP_LIBRARY}
-    ${TIFF_LIRARY}
-    ${OSMIUM_TOOL_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_LIBRARIES}
-    ${OSMIUM_LIRARY}
 )
 
 set(FREEMINER_CLIENT_LIBRARIES
