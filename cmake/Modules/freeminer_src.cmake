@@ -19,19 +19,6 @@ endif()
 
 option(BOOST_COMPILE "Compile boost in place" 0)
 if(BOOST_COMPILE)
-    set(BOOST_INCLUDE_LIBRARIES
-        any
-        asio
-        date_time
-        filesystem
-        lexical_cast
-        program_options
-        system
-        test
-        utility
-        variant
-        config
-    )
     set(BOOST_ENABLE_CMAKE ON)
 
     include(FetchContent)
@@ -44,6 +31,8 @@ if(BOOST_COMPILE)
         OVERRIDE_FIND_PACKAGE TRUE # needed to find correct Boost
         USES_TERMINAL_DOWNLOAD TRUE
         GIT_PROGRESS TRUE
+        DOWNLOAD_EXTRACT_TIMESTAMP ON
+        EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(Boost)
 endif()
@@ -57,7 +46,7 @@ if(ENABLE_WEBSOCKET OR ENABLE_WEBSOCKET_SCTP)
             #set(WEBSOCKETPP_LIBRARY websocketpp::websocketpp)
             message(STATUS "Using websocket: ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp")
             find_package(OpenSSL)
-            set(WEBSOCKETPP_LIBRARY ${WEBSOCKETPP_LIBRARY} OpenSSL::SSL)
+            set(WEBSOCKETPP_LIBRARY ${WEBSOCKETPP_LIBRARY} OpenSSL::SSL Boost::headers)
             set(USE_WEBSOCKET 1 CACHE BOOL "")
             #TODO:
             # set(USE_WEBSOCKET_SCTP 1 CACHE BOOL "")
@@ -150,6 +139,52 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
         set(CPPCHECK 0 CACHE INTERNAL "")
 
         if(NOT OSMIUM_INCLUDE_DIR)
+
+            if(boost_SOURCE_DIR)
+                include_directories(BEFORE SYSTEM
+                    ${boost_SOURCE_DIR}/libs/any/include
+                    ${boost_SOURCE_DIR}/libs/assert/include
+                    ${boost_SOURCE_DIR}/libs/config/include
+                    ${boost_SOURCE_DIR}/libs/container_hash/include
+                    ${boost_SOURCE_DIR}/libs/container/include
+                    ${boost_SOURCE_DIR}/libs/core/include
+                    ${boost_SOURCE_DIR}/libs/integer/include
+                    ${boost_SOURCE_DIR}/libs/iterator/include
+                    ${boost_SOURCE_DIR}/libs/lexical_cast/include
+                    ${boost_SOURCE_DIR}/libs/move/include
+                    ${boost_SOURCE_DIR}/libs/preprocessor/include
+                    ${boost_SOURCE_DIR}/libs/program_options/include
+                    ${boost_SOURCE_DIR}/libs/range/include
+                    ${boost_SOURCE_DIR}/libs/static_assert/include
+                    ${boost_SOURCE_DIR}/libs/throw_exception/include
+                    ${boost_SOURCE_DIR}/libs/type_index/include
+                    ${boost_SOURCE_DIR}/libs/type_traits/include
+                    ${boost_SOURCE_DIR}/libs/utility/include
+                    ${boost_SOURCE_DIR}/libs/variant/include
+
+                    ${boost_SOURCE_DIR}/libs/algorithm/include
+                    ${boost_SOURCE_DIR}/libs/array/include
+                    ${boost_SOURCE_DIR}/libs/bind/include
+                    ${boost_SOURCE_DIR}/libs/conversion/include
+                    ${boost_SOURCE_DIR}/libs/detail/include
+                    ${boost_SOURCE_DIR}/libs/function/include
+                    ${boost_SOURCE_DIR}/libs/geometry/include
+                    ${boost_SOURCE_DIR}/libs/graph/include
+                    ${boost_SOURCE_DIR}/libs/math/include
+                    ${boost_SOURCE_DIR}/libs/mpl/include
+                    ${boost_SOURCE_DIR}/libs/multi_index/include
+                    ${boost_SOURCE_DIR}/libs/multiprecision/include
+                    ${boost_SOURCE_DIR}/libs/numeric/conversion/include
+                    ${boost_SOURCE_DIR}/libs/parameter/include
+                    ${boost_SOURCE_DIR}/libs/property_map/include
+                    ${boost_SOURCE_DIR}/libs/qvm/include
+                    ${boost_SOURCE_DIR}/libs/rational/include
+                    ${boost_SOURCE_DIR}/libs/tokenizer/include
+                    ${boost_SOURCE_DIR}/libs/tti/include
+                    ${boost_SOURCE_DIR}/libs/unordered/include
+                )
+            endif()
+
             add_subdirectory(mapgen/earth/libosmium)
             set(OSMIUM_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/include)
             include_directories(BEFORE SYSTEM ${OSMIUM_INCLUDE_DIR})
@@ -177,7 +212,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             set(NLOHMANN_INCLUDE_DIR mapgen/earth/json/include)
             include_directories(BEFORE SYSTEM ${NLOHMANN_INCLUDE_DIR})
             set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/osmium-tool/cmake/Modules/")
-            add_subdirectory(mapgen/earth/osmium-tool)
+            # add_subdirectory(mapgen/earth/osmium-tool)
             set(OSMIUM_TOOL_SRC mapgen/earth/osmium-tool/src/)
             add_library(osmium-tool-lib
                 ${PROJECT_BINARY_DIR}/${OSMIUM_TOOL_SRC}/version.cpp
@@ -206,10 +241,6 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 ${OSMIUM_TOOL_SRC}extract/strategy_smart.cpp
             )
             target_link_libraries(osmium-tool-lib PUBLIC Boost::program_options)
-
-            find_package(BZip2)
-            find_package(EXPAT)
-            target_link_libraries(osmium-tool-lib PRIVATE BZip2::BZip2 EXPAT::EXPAT)
 
             set(OSMIUM_TOOL_LIBRARY osmium-tool-lib)
             set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${OSMIUM_TOOL_LIBRARY})
