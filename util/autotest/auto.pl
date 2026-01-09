@@ -6,7 +6,7 @@
 our $help = qq{
 $0 [-config_variables] [--freeminer_params] [---this_script_params] [---verbose] [----presets] [cmds]
 
-#simple task
+# simple task
 $0 valgrind_massif
 
 # run one task with headless config
@@ -15,18 +15,18 @@ $0 ----headless gdb
 # pass options to app
 $0 -num_emerge_threads=1 tsan bot
 
-#run all tasks except interactive
+# run all tasks except interactive
 $0 all
 
-#manual play with gdb trace if segfault
+# manual play with gdb trace if segfault
 $0 gdb go
 
-#normal play
+# normal play
 $0 go
 
-#build with latests installed clang and play
+# build with latests installed clang and play
 $0 ---cmake_clang=1 ---cmake_libcxx=1 go
-#build with clang-3.8 and play
+# build with clang-3.8 and play
 $0 ---cmake_clang=-3.8 go
 
 # run server with debug in gdb
@@ -105,6 +105,8 @@ $0 ----mg_math_tglag ----server_optimize ----far -static_spawnpoint='(24100,3000
 $0 ----fall1 -continuous_forward=1 bot
 
 ASAN_OPTIONS=detect_container_overflow=0 $0 ---cmake_leveldb=0 -DENABLE_SYSTEM_JSONCPP=0 -DENABLE_WEBSOCKET=0 -keymap_toggle_block_bounds=KEY_F9 ----fall2 set_client asan build_client run_single
+
+$0 -DBUILD_BENCHMARKS=1 go --run-benchmarks  
 };
 
 no if $] >= 5.017011, warnings => 'experimental::smartmatch';
