@@ -116,7 +116,7 @@ if(ENABLE_WEBSOCKET OR ENABLE_WEBSOCKET_SCTP)
                     OpenSSL
                     SOURCE_DIR ${OPENSSL_SOURCE_DIR}
                     GIT_REPOSITORY https://github.com/openssl/openssl.git
-                    GIT_TAG OpenSSL_1_1_1n
+                    GIT_TAG openssl-3.6.0 # OpenSSL_1_1_1n
                     USES_TERMINAL_DOWNLOAD TRUE
                     CONFIGURE_COMMAND
                     ${OPENSSL_CONFIGURE_COMMAND}
