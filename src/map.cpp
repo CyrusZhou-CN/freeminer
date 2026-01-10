@@ -105,6 +105,7 @@ MapSector *Map::getSectorNoGenerate(v2s16 p)
 	return getSectorNoGenerateNoLock(p);
 }
 
+/*
 MapBlock *Map::getBlockNoCreateNoEx(v3s16 p3d)
 {
 	v2s16 p2d(p3d.X, p3d.Z);
