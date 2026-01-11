@@ -17,11 +17,16 @@ if(USE_MULTI)
     endif()
 endif()
 
-option(FETCH_DEPS "Compile deps (boost,...) in place" 0)
+if(ANDROID OR WIN32)
+    option(FETCH_DEPS "Compile deps (boost,...) in place" 1)
+else()
+    option(FETCH_DEPS "Compile deps (boost,...) in place" 0)
+endif()
 
 if(FETCH_DEPS)
+    set(FETCHCONTENT_UPDATES_DISCONNECTED 1)
+    set(FETCHCONTENT_QUIET 0) # Needed to print downloading progress
     include(FetchContent)
-    set(FETCHCONTENT_QUIET FALSE) # Needed to print downloading progress
     set(ENABLE_LIB_ONLY ON CACHE BOOL "")
     set(ENABLE_TESTS OFF CACHE BOOL "")
     set(ENABLE_STATIC_LIB ON CACHE BOOL "")
@@ -67,10 +72,10 @@ endif()
 
 if(FETCH_DEPS)
     set(BOOST_ENABLE_CMAKE ON)
-    set(BOOST_INCLUDE_LIBRARIES 
-       program_options 
-       asio 
-       thread
+    set(BOOST_INCLUDE_LIBRARIES
+        program_options
+        asio
+        thread
     )
 
     include(FetchContent)
@@ -130,7 +135,7 @@ if(ENABLE_WEBSOCKET OR ENABLE_WEBSOCKET_SCTP)
                     ${boost_SOURCE_DIR}/libs/tuple/include
                     ${boost_SOURCE_DIR}/libs/exception/include
                     ${boost_SOURCE_DIR}/libs/optional/include
-            )
+                )
             endif()
 
             include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
@@ -341,7 +346,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 )
             endif()
 
-                set(Osmium_DEBUG 1 CACHE INTERNAL "")
+            set(Osmium_DEBUG 1 CACHE INTERNAL "")
             # TODO: support system installed libosmium
             if(NOT FETCH_OSMIUM AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/CMakeLists.txt)
                 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/cmake")
@@ -349,15 +354,15 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 add_subdirectory(mapgen/earth/libosmium)
                 set(OSMIUM_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/include ${PROTOZERO_INCLUDE_DIR}/include)
 
-        find_package(BZip2)
-        if(BZIP2_FOUND)
-            list(APPEND  OSMIUM_LIRARY BZip2::BZip2)
-        endif()
-        find_package(EXPAT)
-        if(EXPAT_FOUND)
-            list(APPEND  OSMIUM_LIRARY EXPAT::EXPAT)
-        endif()
-        list(APPEND  OSMIUM_LIRARY Boost::headers)
+                find_package(BZip2)
+                if(BZIP2_FOUND)
+                    list(APPEND OSMIUM_LIRARY BZip2::BZip2)
+                endif()
+                find_package(EXPAT)
+                if(EXPAT_FOUND)
+                    list(APPEND OSMIUM_LIRARY EXPAT::EXPAT)
+                endif()
+                list(APPEND OSMIUM_LIRARY Boost::headers)
 
             else()
                 FetchContent_Declare(libosmium
@@ -389,7 +394,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
         list(APPEND FREEMINER_COMMON_LIBRARIES ${OSMIUM_LIRARY})
 
         option(ENABLE_OSMIUM_TOOL "Enable Osmium tool" 1)
-        if(ENABLE_OSMIUM_TOOL)
+        if(ENABLE_OSMIUM_TOOL AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/osmium-tool/CMakeLists.txt)
             set(USE_OSMIUM_TOOL 1)
         endif()
 
