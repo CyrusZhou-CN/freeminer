@@ -35,7 +35,7 @@ if(FETCH_DEPS)
         # GIT_TAG "bzip2-1.0.8" # CMake support not available
         GIT_SHALLOW TRUE
 
-        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/bzip2
+        # SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/bzip2
         OVERRIDE_FIND_PACKAGE TRUE
         USES_TERMINAL_DOWNLOAD TRUE
         GIT_PROGRESS TRUE
@@ -57,7 +57,7 @@ if(FETCH_OPENSSL AND FETCH_DEPS AND NOT TARGET OpenSSL::SSL)
         GIT_TAG main
         SOURCE_SUBDIR cmake
         GIT_SUBMODULES_RECURSE OFF
-        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl-cmake
+        # SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl-cmake
         GIT_SHALLOW TRUE
         OVERRIDE_FIND_PACKAGE TRUE
         USES_TERMINAL_DOWNLOAD TRUE
@@ -84,7 +84,7 @@ if(FETCH_DEPS)
         GIT_TAG boost-1.90.0
         GIT_SHALLOW TRUE
 
-        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/boost
+        # SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/boost
         OVERRIDE_FIND_PACKAGE TRUE # needed to find correct Boost
         USES_TERMINAL_DOWNLOAD TRUE
         GIT_PROGRESS TRUE
@@ -238,7 +238,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             SOURCE_SUBDIR build/cmake
             SYSTEM TRUE
 
-            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/lz4
+            # SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/lz4
             GIT_SHALLOW TRUE
             OVERRIDE_FIND_PACKAGE TRUE
             USES_TERMINAL_DOWNLOAD TRUE
@@ -256,7 +256,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             SOURCE_SUBDIR cmake
 
             GIT_SUBMODULES_RECURSE OFF
-            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/protozero
+            # SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/protozero
             GIT_SHALLOW TRUE
             OVERRIDE_FIND_PACKAGE TRUE
             USES_TERMINAL_DOWNLOAD TRUE
@@ -274,7 +274,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             GIT_TAG R_2_7_3
             SOURCE_SUBDIR expat/
 
-            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/expat
+            # SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/expat
             GIT_SHALLOW TRUE
             OVERRIDE_FIND_PACKAGE TRUE
             USES_TERMINAL_DOWNLOAD TRUE
@@ -344,6 +344,13 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 )
             endif()
 
+
+
+            #if(ANDROID OR WIN32 OR EMSCRIPTEN OR USE_LIBCXX)
+            if(FETCH_DEPS)
+                set(FETCH_OSMIUM 1 CACHE INTERNAL "")
+            endif()
+
             set(Osmium_DEBUG 1 CACHE INTERNAL "")
             # TODO: support system installed libosmium
             if(NOT FETCH_OSMIUM AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/CMakeLists.txt)
@@ -366,7 +373,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 FetchContent_Declare(libosmium
                     GIT_REPOSITORY https://github.com/osmcode/libosmium
                     GIT_TAG v2.22.0
-                    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libosmium
+                    # SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libosmium
                     SOURCE_SUBDIR cmake
                     GIT_SUBMODULES_RECURSE OFF
 
