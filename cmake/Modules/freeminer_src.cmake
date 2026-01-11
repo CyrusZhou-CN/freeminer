@@ -1,7 +1,5 @@
-
-# == freeminer:
-
 find_package(MsgPack REQUIRED)
+include_directories(${MSGPACK_INCLUDE_DIR})
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     option(ENABLE_SCTP "Enable SCTP networking (EXPERIMENTAL)" 0)
@@ -17,7 +15,7 @@ if(USE_MULTI)
     endif()
 endif()
 
-if(ANDROID OR WIN32)
+if(ANDROID OR WIN32 OR EMSCRIPTEN OR USE_LIBCXX)
     option(FETCH_DEPS "Compile deps (boost,...) in place" 1)
 else()
     option(FETCH_DEPS "Compile deps (boost,...) in place" 0)
@@ -198,9 +196,9 @@ if(ENABLE_ENET)
     endif()
     if(ENET_LIBRARY AND ENET_INCLUDE_DIR)
         include_directories(${ENET_INCLUDE_DIR})
-        message(STATUS "Using enet: ${ENET_INCLUDE_DIR} ${ENET_LIBRARY}")
         set(USE_ENET 1)
-        set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${ENET_LIBRARY})
+        list(APPEND FREEMINER_COMMON_LIBRARIES ${ENET_LIBRARY})
+        message(STATUS "Using enet ${USE_ENET}: ${ENET_INCLUDE_DIR} ${ENET_LIBRARY}")
     endif()
 endif()
 
@@ -402,7 +400,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             add_subdirectory(mapgen/earth/json)
             set(NLOHMANN_INCLUDE_DIR mapgen/earth/json/include)
             include_directories(BEFORE SYSTEM ${NLOHMANN_INCLUDE_DIR})
-            set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/osmium-tool/cmake/Modules/")
+            list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/osmium-tool/cmake/Modules/")
             # add_subdirectory(mapgen/earth/osmium-tool)
             set(OSMIUM_TOOL_SRC mapgen/earth/osmium-tool/src/)
 
@@ -440,7 +438,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             target_include_directories(osmium-tool-lib PRIVATE ${OSMIUM_INCLUDE_DIR})
 
             set(OSMIUM_TOOL_LIBRARY osmium-tool-lib)
-            set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES} ${OSMIUM_TOOL_LIBRARY})
+            list(APPEND FREEMINER_COMMON_LIBRARIES ${OSMIUM_TOOL_LIBRARY})
 
         endif()
         message(STATUS "Using osmiumtool ${USE_OSMIUM_TOOL} : ${OSMIUM_TOOL_LIBRARY}")
@@ -517,19 +515,25 @@ set(FMcommon_SRCS ${FMcommon_SRCS}
     fm_serverenvironment.cpp
 )
 
-set(FREEMINER_COMMON_LIBRARIES ${FREEMINER_COMMON_LIBRARIES}
+list(APPEND FREEMINER_COMMON_LIBRARIES
     ${MSGPACK_LIBRARY}
 )
 
-set(FREEMINER_CLIENT_LIBRARIES
+list(APPEND FREEMINER_CLIENT_LIBRARIES
     ${FREEMINER_COMMON_LIBRARIES}
 )
 
-find_package(PNG REQUIRED)
+if(NOT PNG_LIBRARY)
+    find_package(PNG REQUIRED)
+endif()
 
-set(FREEMINER_SERVER_LIBRARIES
+message(STATUS "Using server PNG: ${PNG_LIBRARY}  : ${PNG_INCLUDE_DIR} : ? ${PNG_PNG_INCLUDE_DIR}")
+if(NOT PNG_INCLUDE_DIR AND PNG_PNG_INCLUDE_DIR)
+    set(PNG_INCLUDE_DIR ${PNG_PNG_INCLUDE_DIR} CACHE INTERNAL "")
+endif()
+include_directories(${PNG_INCLUDE_DIR})
+
+list(APPEND FREEMINER_SERVER_LIBRARIES
     ${FREEMINER_COMMON_LIBRARIES}
     ${PNG_LIBRARY}
 )
-
-# == end freeminer:
