@@ -44,6 +44,14 @@ if(FETCH_DEPS)
     target_include_directories(bz2 PUBLIC ${BZIP2_INCLUDE_DIR})
 endif()
 
+if(FETCH_DEPS AND NOT TARGET OpenSSL::SSL)
+    FetchContent_Declare(
+        openssl-cmake
+        URL https://github.com/jimmy-park/openssl-cmake/archive/main.tar.gz
+    )
+    FetchContent_MakeAvailable(openssl-cmake)
+endif()
+
 if(FETCH_DEPS)
     set(BOOST_ENABLE_CMAKE ON)
     set(BOOST_INCLUDE_LIBRARIES program_options)
@@ -93,6 +101,7 @@ if(ENABLE_WEBSOCKET OR ENABLE_WEBSOCKET_SCTP)
                     ${boost_SOURCE_DIR}/libs/smart_ptr/include
                     ${boost_SOURCE_DIR}/libs/static_assert/include
                     ${boost_SOURCE_DIR}/libs/system/include
+                    ${boost_SOURCE_DIR}/libs/thread/include
                     ${boost_SOURCE_DIR}/libs/throw_exception/include
                     ${boost_SOURCE_DIR}/libs/type_index/include
                     ${boost_SOURCE_DIR}/libs/type_traits/include
@@ -103,45 +112,6 @@ if(ENABLE_WEBSOCKET OR ENABLE_WEBSOCKET_SCTP)
             #add_subdirectory(external/websocketpp)
             #set(WEBSOCKETPP_LIBRARY websocketpp::websocketpp)
             find_package(OpenSSL)
-
-            if(NOT TARGET OpenSSL::SSL AND FETCH_DEPS)
-                # https://stackoverflow.com/questions/66829315/how-to-use-cmake-fetchcontent-to-link-openssl
-
-                include(ExternalProject)
-                set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl)
-                set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl)
-                set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
-                set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
-                ExternalProject_Add(
-                    OpenSSL
-                    SOURCE_DIR ${OPENSSL_SOURCE_DIR}
-                    GIT_REPOSITORY https://github.com/openssl/openssl.git
-                    GIT_TAG openssl-3.6.0 # OpenSSL_1_1_1n
-                    USES_TERMINAL_DOWNLOAD TRUE
-                    CONFIGURE_COMMAND
-                    ${OPENSSL_CONFIGURE_COMMAND}
-                    --prefix=${OPENSSL_INSTALL_DIR}
-                    --openssldir=${OPENSSL_INSTALL_DIR}
-                    BUILD_COMMAND make
-                    TEST_COMMAND ""
-                    INSTALL_COMMAND make install
-                    INSTALL_DIR ${OPENSSL_INSTALL_DIR}
-                )
-                # We cannot use find_library because ExternalProject_Add() is performed at build time.
-                # And to please the property INTERFACE_INCLUDE_DIRECTORIES,
-                # we make the include directory in advance.
-                file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
-
-                add_library(OpenSSL::SSL STATIC IMPORTED GLOBAL)
-                set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/lib/libssl.${OPENSSL_LIBRARY_SUFFIX})
-                set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
-                add_dependencies(OpenSSL::SSL OpenSSL)
-
-                add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
-                set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/lib/libcrypto.${OPENSSL_LIBRARY_SUFFIX})
-                set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
-                add_dependencies(OpenSSL::Crypto OpenSSL)
-            endif()
 
             if(OPENSSL_FOUND)
                 set(WEBSOCKETPP_LIBRARY ${WEBSOCKETPP_LIBRARY} OpenSSL::SSL)
