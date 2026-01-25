@@ -23,7 +23,6 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "hgt.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -1094,6 +1093,7 @@ bool height_seabed_tif::load(height::ll_t lat, height::ll_t lon)
 				height = (((uint8_t *)buf)[i << 1]) |
 						 (((uint8_t *)buf)[(i << 1) + 1] << 8);
 				dest = i + row * (w + 1);
+				if (height <= -32767 || height >= 31727)
 					height = 0;
 				heights[dest] = height;
 			}
