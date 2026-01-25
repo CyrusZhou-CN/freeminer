@@ -487,7 +487,6 @@ const auto gen_zip_name_15 = [](int lat_dec, int lon_dec) {
 	h = floor(h / 180.0 * 4);
 	int w = floor((lon_dec + 180) / 360.0 * 6);
 	char c = 'A' + h * 6 + w;
-	DUMP(h, w, c);
 	return std::string{"15-"} + c;
 };
 
@@ -518,8 +517,6 @@ bool height_tif::load(ll_t lat, ll_t lon)
 		//DUMP(lat_dec, lon_dec);
 		return false;
 	}
-	DUMP((long long)this, lat_dec, lon_dec, lat_loading, lon_loading, lat_loaded,
-			lon_loaded);
 	//TimeTaker timer("hgt load");
 
 	lat_loading = lat_dec;
@@ -533,7 +530,6 @@ bool height_tif::load(ll_t lat, ll_t lon)
 		const auto zipfile = zipname + ".zip";
 		const auto zipfull = folder + "/" + zipname;
 		const auto tifname = folder + "/" + zipname + ".tif";
-		DUMP(zipname, zipfile, tifname);
 		if (!std::filesystem::exists(tifname)) {
 			multi_http_to_file(zipfile,
 					{"http://cdn.freeminer.org/earth/" + zipfile,
@@ -576,20 +572,18 @@ bool height_tif::load(ll_t lat, ll_t lon)
 									floor(((bytes[0] * 0.299) + (bytes[1] * 0.587) +
 											(bytes[3] * 0.144) + 0.5)) -
 									37; // Wrong?
-							if (!(i % 100000))
-								DUMP(i, raster[i], bytes[0], bytes[2], bytes[3], bytes[4],
-										gray);
+							//if (!(i % 100000)) DUMP(i, raster[i], bytes[0], bytes[2], bytes[3], bytes[4],gray);
 							heights[i] = gray;
 						}
 
 						lat_loaded = lat_dec;
 						lon_loaded = lon_dec;
 					} else {
-						DUMP("read fail");
+						//DUMP("read fail");
 					}
 					_TIFFfree(raster);
 				} else {
-					DUMP("malloc fail");
+					//DUMP("malloc fail");
 				}
 				TIFFClose(tif);
 
@@ -599,7 +593,7 @@ bool height_tif::load(ll_t lat, ll_t lon)
 					seconds_per_px_y = seconds_per_px_x = 15;
 					side_length_x = w;
 					side_length_y = h;
-					DUMP("tif ok", seconds_per_px_x, side_length_x, side_length_y);
+					//DUMP("tif ok", seconds_per_px_x, side_length_x, side_length_y);
 
 					lat_loaded = lat_dec;
 					lon_loaded = lon_dec;
@@ -607,10 +601,8 @@ bool height_tif::load(ll_t lat, ll_t lon)
 					pixel_per_deg_x = (ll_t)side_length_x / tile_deg_x;
 					pixel_per_deg_y = (ll_t)side_length_y / tile_deg_y;
 
-					DUMP("loadok", (long long)this, heights.size(), lat_loaded,
-							lon_loaded, zipname, tifname, seconds_per_px_x,
-							get(lat_dec, lon_dec));
-					DUMP("ppd", pixel_per_deg_x, pixel_per_deg_y);
+					//DUMP("loadok", (long long)this, heights.size(), lat_loaded, lon_loaded, zipname, tifname, seconds_per_px_x, get(lat_dec, lon_dec));
+					//DUMP("ppd", pixel_per_deg_x, pixel_per_deg_y);
 
 					return true;
 				}
