@@ -265,7 +265,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             EXCLUDE_FROM_ALL
         )
         FetchContent_MakeAvailable(protozero)
-        set(PROTOZERO_INCLUDE_DIR "${protozero_SOURCE_DIR}")
+        set(PROTOZERO_INCLUDE_DIR "${protozero_SOURCE_DIR}/include")
         set(PROTOZERO_FOUND 1 CACHE INTERNAL "")
 
         FetchContent_Declare(
@@ -281,9 +281,9 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
             GIT_PROGRESS TRUE
             DOWNLOAD_EXTRACT_TIMESTAMP ON
             EXCLUDE_FROM_ALL
-
         )
         FetchContent_MakeAvailable(expat)
+        set(EXPAT_FOUND 1 CACHE INTERNAL "")
         add_library(EXPAT::EXPAT ALIAS expat)
     endif()
     set(Boost_USE_STATIC_LIBS ${BUILD_STATIC_LIBS})
@@ -357,18 +357,9 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/cmake")
                 set(Osmium_USE_LZ4 1 CACHE INTERNAL "")
                 add_subdirectory(mapgen/earth/libosmium)
-                set(OSMIUM_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/include ${PROTOZERO_INCLUDE_DIR}/include)
-
+                set(OSMIUM_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/include)
                 find_package(BZip2)
-                if(BZIP2_FOUND)
-                    list(APPEND OSMIUM_LIRARY BZip2::BZip2)
-                endif()
                 find_package(EXPAT)
-                if(EXPAT_FOUND)
-                    list(APPEND OSMIUM_LIRARY EXPAT::EXPAT)
-                endif()
-                list(APPEND OSMIUM_LIRARY Boost::headers)
-
             else()
                 FetchContent_Declare(libosmium
                     GIT_REPOSITORY https://github.com/osmcode/libosmium
@@ -386,13 +377,19 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
 
                 )
                 FetchContent_MakeAvailable(libosmium)
+                list(APPEND OSMIUM_INCLUDE_DIR ${libosmium_SOURCE_DIR}/include)
+            endif()
 
-                list(APPEND OSMIUM_LIRARY Boost::headers)
-                list(APPEND OSMIUM_INCLUDE_DIR ${libosmium_SOURCE_DIR}/include ${PROTOZERO_INCLUDE_DIR}/include)
+            list(APPEND OSMIUM_INCLUDE_DIR ${PROTOZERO_INCLUDE_DIR})
+            list(APPEND OSMIUM_LIRARY Boost::headers)
+            if(BZIP2_FOUND)
+                list(APPEND OSMIUM_LIRARY BZip2::BZip2)
+            endif()
+            if(EXPAT_FOUND)
+                list(APPEND OSMIUM_LIRARY EXPAT::EXPAT)
             endif()
 
             include_directories(BEFORE SYSTEM ${OSMIUM_INCLUDE_DIR})
-
         endif()
         set(USE_OSMIUM 1)
         message(STATUS "Using osmium ${USE_OSMIUM}: ${OSMIUM_INCLUDE_DIR} : ${OSMIUM_LIRARY}")
