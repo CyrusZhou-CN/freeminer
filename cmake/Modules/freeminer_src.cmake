@@ -92,48 +92,16 @@ if(FETCH_DEPS)
         EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(Boost)
+    set(Boost_FOUND 1 CACHE INTERNAL "")
+    set(Boost_INCLUDE_DIRS "${BOOST_LIBRARY_INCLUDES} ${boost_SOURCE_DIR}/libs/numeric/conversion/include" CACHE INTERNAL "")
 endif()
 
 if(ENABLE_WEBSOCKET OR ENABLE_WEBSOCKET_SCTP)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp/CMakeLists.txt)
         find_package(Boost)
         if(Boost_FOUND)
-
             if(boost_SOURCE_DIR)
-                include_directories(BEFORE SYSTEM
-                    ${boost_SOURCE_DIR}/libs/align/include
-                    ${boost_SOURCE_DIR}/libs/asio/include
-                    ${boost_SOURCE_DIR}/libs/assert/include
-                    ${boost_SOURCE_DIR}/libs/bind/include
-                    ${boost_SOURCE_DIR}/libs/config/include
-                    ${boost_SOURCE_DIR}/libs/container_hash/include
-                    ${boost_SOURCE_DIR}/libs/container/include
-                    ${boost_SOURCE_DIR}/libs/core/include
-                    ${boost_SOURCE_DIR}/libs/date_time/include
-                    ${boost_SOURCE_DIR}/libs/describe/include
-                    ${boost_SOURCE_DIR}/libs/detail/include
-                    ${boost_SOURCE_DIR}/libs/function/include
-                    ${boost_SOURCE_DIR}/libs/lexical_cast/include
-                    ${boost_SOURCE_DIR}/libs/move/include
-                    ${boost_SOURCE_DIR}/libs/mp11/include
-                    ${boost_SOURCE_DIR}/libs/mpl/include
-                    ${boost_SOURCE_DIR}/libs/numeric/conversion/include
-                    ${boost_SOURCE_DIR}/libs/smart_ptr/include
-                    ${boost_SOURCE_DIR}/libs/static_assert/include
-                    ${boost_SOURCE_DIR}/libs/system/include
-                    ${boost_SOURCE_DIR}/libs/thread/include
-                    ${boost_SOURCE_DIR}/libs/throw_exception/include
-                    ${boost_SOURCE_DIR}/libs/type_index/include
-                    ${boost_SOURCE_DIR}/libs/type_traits/include
-                    ${boost_SOURCE_DIR}/libs/winapi/include
-                    ${boost_SOURCE_DIR}/libs/predef/include
-                    ${boost_SOURCE_DIR}/libs/chrono/include
-                    ${boost_SOURCE_DIR}/libs/io/include
-                    ${boost_SOURCE_DIR}/libs/ratio/include
-                    ${boost_SOURCE_DIR}/libs/tuple/include
-                    ${boost_SOURCE_DIR}/libs/exception/include
-                    ${boost_SOURCE_DIR}/libs/optional/include
-                )
+                include_directories(BEFORE SYSTEM ${Boost_INCLUDE_DIRS})
             endif()
 
             include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
@@ -299,54 +267,8 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
 
         if(NOT OSMIUM_INCLUDE_DIR)
             if(boost_SOURCE_DIR)
-                include_directories(BEFORE SYSTEM
-                    ${boost_SOURCE_DIR}/libs/any/include
-                    ${boost_SOURCE_DIR}/libs/assert/include
-                    ${boost_SOURCE_DIR}/libs/config/include
-                    ${boost_SOURCE_DIR}/libs/container_hash/include
-                    ${boost_SOURCE_DIR}/libs/container/include
-                    ${boost_SOURCE_DIR}/libs/core/include
-                    ${boost_SOURCE_DIR}/libs/integer/include
-                    ${boost_SOURCE_DIR}/libs/iterator/include
-                    ${boost_SOURCE_DIR}/libs/lexical_cast/include
-                    ${boost_SOURCE_DIR}/libs/move/include
-                    ${boost_SOURCE_DIR}/libs/preprocessor/include
-                    ${boost_SOURCE_DIR}/libs/program_options/include
-                    ${boost_SOURCE_DIR}/libs/range/include
-                    ${boost_SOURCE_DIR}/libs/static_assert/include
-                    ${boost_SOURCE_DIR}/libs/throw_exception/include
-                    ${boost_SOURCE_DIR}/libs/type_index/include
-                    ${boost_SOURCE_DIR}/libs/type_traits/include
-                    ${boost_SOURCE_DIR}/libs/utility/include
-                    ${boost_SOURCE_DIR}/libs/variant/include
-
-                    ${boost_SOURCE_DIR}/libs/algorithm/include
-                    ${boost_SOURCE_DIR}/libs/array/include
-                    ${boost_SOURCE_DIR}/libs/bind/include
-                    ${boost_SOURCE_DIR}/libs/conversion/include
-                    ${boost_SOURCE_DIR}/libs/detail/include
-                    ${boost_SOURCE_DIR}/libs/function/include
-                    ${boost_SOURCE_DIR}/libs/geometry/include
-                    ${boost_SOURCE_DIR}/libs/graph/include
-                    ${boost_SOURCE_DIR}/libs/math/include
-                    ${boost_SOURCE_DIR}/libs/mpl/include
-                    ${boost_SOURCE_DIR}/libs/multi_index/include
-                    ${boost_SOURCE_DIR}/libs/multiprecision/include
-                    ${boost_SOURCE_DIR}/libs/numeric/conversion/include
-                    ${boost_SOURCE_DIR}/libs/parameter/include
-                    ${boost_SOURCE_DIR}/libs/property_map/include
-                    ${boost_SOURCE_DIR}/libs/qvm/include
-                    ${boost_SOURCE_DIR}/libs/rational/include
-                    ${boost_SOURCE_DIR}/libs/smart_ptr/include
-                    ${boost_SOURCE_DIR}/libs/tokenizer/include
-                    ${boost_SOURCE_DIR}/libs/tti/include
-                    ${boost_SOURCE_DIR}/libs/unordered/include
-                )
+                include_directories(BEFORE SYSTEM ${Boost_INCLUDE_DIRS})
             endif()
-
-
-
-            #if(ANDROID OR WIN32 OR EMSCRIPTEN OR USE_LIBCXX)
             if(FETCH_DEPS)
                 set(FETCH_OSMIUM 1 CACHE INTERNAL "")
             endif()
@@ -357,7 +279,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
                 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/cmake")
                 set(Osmium_USE_LZ4 1 CACHE INTERNAL "")
                 add_subdirectory(mapgen/earth/libosmium)
-                set(OSMIUM_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/include)
+                set(OSMIUM_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapgen/earth/libosmium/include ${Boost_INCLUDE_DIRS})
                 find_package(BZip2)
                 find_package(EXPAT)
             else()
@@ -412,29 +334,29 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
 
             add_library(osmium-tool-lib
                 ${PROJECT_BINARY_DIR}/${OSMIUM_TOOL_SRC}/version.cpp
-                ${OSMIUM_TOOL_SRC}command_extract.cpp
-                ${OSMIUM_TOOL_SRC}cmd.cpp
                 ${OSMIUM_TOOL_SRC}cmd_factory.cpp
-                ${OSMIUM_TOOL_SRC}id_file.cpp
-                ${OSMIUM_TOOL_SRC}io.cpp
-                ${OSMIUM_TOOL_SRC}util.cpp
+                ${OSMIUM_TOOL_SRC}cmd.cpp
+                ${OSMIUM_TOOL_SRC}command_extract.cpp
                 ${OSMIUM_TOOL_SRC}command_help.cpp
-                ${OSMIUM_TOOL_SRC}option_clean.cpp
                 ${OSMIUM_TOOL_SRC}export/export_format_json.cpp
                 ${OSMIUM_TOOL_SRC}export/export_format_pg.cpp
                 ${OSMIUM_TOOL_SRC}export/export_format_text.cpp
                 ${OSMIUM_TOOL_SRC}export/export_handler.cpp
                 ${OSMIUM_TOOL_SRC}extract/extract_bbox.cpp
-                ${OSMIUM_TOOL_SRC}extract/extract.cpp
                 ${OSMIUM_TOOL_SRC}extract/extract_polygon.cpp
+                ${OSMIUM_TOOL_SRC}extract/extract.cpp
                 ${OSMIUM_TOOL_SRC}extract/geojson_file_parser.cpp
                 ${OSMIUM_TOOL_SRC}extract/geometry_util.cpp
                 ${OSMIUM_TOOL_SRC}extract/osm_file_parser.cpp
                 ${OSMIUM_TOOL_SRC}extract/poly_file_parser.cpp
-                ${OSMIUM_TOOL_SRC}extract/strategy_complete_ways.cpp
                 ${OSMIUM_TOOL_SRC}extract/strategy_complete_ways_with_history.cpp
+                ${OSMIUM_TOOL_SRC}extract/strategy_complete_ways.cpp
                 ${OSMIUM_TOOL_SRC}extract/strategy_simple.cpp
                 ${OSMIUM_TOOL_SRC}extract/strategy_smart.cpp
+                ${OSMIUM_TOOL_SRC}id_file.cpp
+                ${OSMIUM_TOOL_SRC}io.cpp
+                ${OSMIUM_TOOL_SRC}option_clean.cpp
+                ${OSMIUM_TOOL_SRC}util.cpp
             )
             target_link_libraries(osmium-tool-lib
                 PRIVATE ${OSMIUM_LIRARY}
