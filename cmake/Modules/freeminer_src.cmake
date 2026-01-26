@@ -74,6 +74,7 @@ if(FETCH_DEPS)
         program_options
         asio
         thread
+        geometry
     )
 
     include(FetchContent)
@@ -255,7 +256,7 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
         add_library(EXPAT::EXPAT ALIAS expat)
     endif()
     set(Boost_USE_STATIC_LIBS ${BUILD_STATIC_LIBS})
-    find_package(Boost COMPONENTS program_options)
+    find_package(Boost COMPONENTS program_options geometry)
     if(Boost_FOUND)
         set(BUILD_TESTING 0 CACHE INTERNAL "")
         set(BUILD_DATA_TESTS 0 CACHE INTERNAL "")
@@ -268,6 +269,9 @@ if(ENABLE_OSMIUM AND (OSMIUM_INCLUDE_DIR OR EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/m
         if(NOT OSMIUM_INCLUDE_DIR)
             if(boost_SOURCE_DIR)
                 include_directories(BEFORE SYSTEM ${Boost_INCLUDE_DIRS})
+                include_directories(BEFORE SYSTEM
+                    ${boost_SOURCE_DIR}/libs/numeric/conversion/include
+                )
             endif()
             if(FETCH_DEPS)
                 set(FETCH_OSMIUM 1 CACHE INTERNAL "")
