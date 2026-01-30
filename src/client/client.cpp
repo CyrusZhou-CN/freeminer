@@ -185,7 +185,7 @@ Client::Client(
 	control.cell_size_pow =	rangeToStep(control.cell_size);
 	control.farmesh_quality = g_settings->getU16("farmesh_quality");
 	control.farmesh_quality_pow = rangeToStep(control.farmesh_quality);
-	control.farmesh_stable = g_settings->getU16("farmesh_stable");
+	control.farmesh_stable = g_settings->getBool("farmesh_stable");
 	control.farmesh_all_changed = g_settings->getPos("farmesh_all_changed");
 }
 
