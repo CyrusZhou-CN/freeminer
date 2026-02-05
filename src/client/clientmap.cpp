@@ -1138,11 +1138,8 @@ void ClientMap::updateDrawListFm(float dtime, unsigned int max_cycle_ms)
 				continue;
 
 			{
-				const auto fmesh_step = getFarStep(
-						m_control, getNodeBlockPos(far_blocks_last_cam_pos), bp);
-				blocks_skip_farmesh.emplace(
-						getFarActual(bp, getNodeBlockPos(far_blocks_last_cam_pos),
-								fmesh_step, m_control));
+				blocks_skip_farmesh.emplace(getFarActualBlockPos(
+						bp, getNodeBlockPos(far_blocks_last_cam_pos), m_control));
 			}
 
 			if (mesh) {
@@ -1177,8 +1174,7 @@ void ClientMap::updateDrawListFm(float dtime, unsigned int max_cycle_ms)
 		const auto lock = m_far_blocks.lock_unique_rec();
 		for (auto it = m_far_blocks.begin(); it != m_far_blocks.end();) {
 			const auto &block = it->second;
-			if (far_iteration_clean  &&
-					block->far_iteration < far_iteration_clean) {
+			if (far_iteration_clean && block->far_iteration < far_iteration_clean) {
 				m_far_blocks_delete.emplace_back(block);
 				it = m_far_blocks.erase(it);
 			} else if (block->far_iteration >= far_iteration_use) {

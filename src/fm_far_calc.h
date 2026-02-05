@@ -47,17 +47,18 @@ block_step_t getLodStep(const MapDrawControl &draw_control,
 block_step_t getFarStepCellSize(const MapDrawControl &draw_control, const v3bpos_t &ppos,
 		const v3bpos_t &blockpos, uint8_t cell_size_pow);
 block_step_t getFarStep(const MapDrawControl &draw_control,
-		const v3bpos_t &playerblockpos, const v3bpos_t &block_pos);
+		const v3bpos_t &playerblockpos, const v3bpos_t &block_pos,
+		const std::optional<uint8_t> &cell_size_pow = {});
 block_step_t getFarStepBad(const MapDrawControl &draw_control,
 		const v3bpos_t &playerblockpos, const v3bpos_t &block_pos);
 bool inFarGrid(const v3bpos_t &blockpos, const v3bpos_t &playerblockpos,
-		block_step_t step, const MapDrawControl &draw_control);
-v3bpos_t getFarActual(const v3bpos_t &blockpos, const v3bpos_t &playerblockpos,
-		block_step_t step, const MapDrawControl &draw_control,
+		const MapDrawControl &draw_control);
+v3bpos_t getFarActualBlockPos(const v3bpos_t &blockpos, const v3bpos_t &playerblockpos,
+		const MapDrawControl &draw_control,
 		const std::optional<uint8_t> &cell_size_pow = {});
 v3bpos_t playerBlockAlign(
 		const MapDrawControl &draw_control, const v3bpos_t &playerblockpos);
 void runFarAll(const v3bpos_t &ppos, uint8_t cell_size_pow, int farmesh,
-		uint8_t farmesh_quality, pos_t two_d,
+		uint8_t farmesh_quality_pow, pos_t two_d,
 		const std::function<bool(const v3bpos_t &, const bpos_t &)> &func);
-int rangeToStep(const int range);
+uint8_t rangeToStep(const int range);

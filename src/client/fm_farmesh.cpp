@@ -54,7 +54,8 @@ const v3opos_t g_6dirso[6] = {
 		v3opos_t(0, 1, 0),	// top
 };
 
-void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bnear)
+void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bnear,
+		std::optional<v3bpos_t> blockpos_actual_optional)
 {
 	g_profiler->add("Client: Farmesh make", 1);
 
@@ -62,9 +63,10 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bne
 	//const auto &draw_control = client_map.getControl();
 	const auto &draw_control = *m_control;
 	const auto blockpos_actual =
-			bnear ? blockpos
-				  : getFarActual(blockpos, getNodeBlockPos(m_camera_pos_aligned), step,
-							draw_control);
+			blockpos_actual_optional.has_value() ? blockpos_actual_optional.value()
+			: bnear								 ? blockpos
+												 : getFarActualBlockPos(blockpos,
+														   getNodeBlockPos(m_camera_pos_aligned), draw_control);
 	auto &far_blocks = //near ? m_client->getEnv().getClientMap().m_far_near_blocks :
 			client_map.m_far_blocks;
 	if (const auto it = client_map.far_blocks_storage[step].find(blockpos_actual);
@@ -134,9 +136,9 @@ void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, block_step_t step)
 
 	// TODO: fix finding correct near blocks respecting their steps and enable:
 
-	const static auto pfar = std::vector<v3pos_t>{
-			v3pos_t(0, 0, 0), // self
-	};
+	//const static auto pfar = std::vector<v3pos_t>{
+	//		v3pos_t(0, 0, 0), // self
+	//};
 	const static auto pnear = std::vector<v3pos_t>{
 			v3pos_t(0, 0, 0),  // self
 			v3pos_t(0, 0, 1),  // back
@@ -147,15 +149,15 @@ void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, block_step_t step)
 			v3pos_t(0, -1, 0), // bottom
 	};
 	const auto &use_dirs = pnear;
-	const auto step_width = 1 << (step - 1);
+	const auto &control = *m_control;
+	const auto step_width = 1 << (step - 1 + control.cell_size_pow);
 	for (const auto &dir : use_dirs) {
 		const auto bpos_dir = blockpos + dir * step_width;
-		const auto &control = *m_control;
-		const auto bpos = getFarActual(
-				bpos_dir, getNodeBlockPos(m_camera_pos_aligned), step, control);
+		const auto bpos = getFarActualBlockPos(
+				bpos_dir, getNodeBlockPos(m_camera_pos_aligned), control);
 		const auto block_step_correct =
 				getFarStep(control, getNodeBlockPos(m_camera_pos_aligned), bpos);
-		makeFarBlock(bpos, block_step_correct);
+		makeFarBlock(bpos, block_step_correct, {}, bpos);
 	}
 }
 
@@ -278,7 +280,7 @@ int FarMesh::go_container()
 			g_settings->getU32("farmesh_all_changed");
 
 	runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
-			draw_control.farmesh_quality, 0,
+			draw_control.farmesh_quality_pow, 0,
 			[this, &cbpos](const v3bpos_t &bpos, const bpos_t &size) -> bool {
 				const block_step_t step = rangeToStep(size);
 
@@ -298,7 +300,7 @@ int FarMesh::go_container()
 				const auto contains = it != step_blocks.end() && it->second.block;
 
 				if (contains) {
-					makeFarBlock(bpos, step);
+					makeFarBlock(bpos, step, {}, bpos);
 				}
 
 				return false;
@@ -322,7 +324,7 @@ int FarMesh::go_flat()
 	// todo: maybe save blocks while cam pos not changed
 	std::array<std::unordered_set<v3bpos_t>, FARMESH_STEP_MAX> blocks;
 	runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
-			draw_control.farmesh_quality, cbpos.Y ?: 1,
+			draw_control.farmesh_quality_pow, cbpos.Y ?: 1,
 			[this, &draw_control, &blocks](
 					const v3bpos_t &bpos, const bpos_t &size) -> bool {
 				for (const auto &add : {
@@ -350,6 +352,9 @@ int FarMesh::go_flat()
 			});
 
 	for (; last_step < blocks.size(); ++last_step) {
+		if (!last_step) {
+			continue;
+		}
 		for (const auto &bpos : blocks[last_step]) {
 			// just first suggestion
 			if (1 << (last_step + MAP_BLOCKP) > draw_control.farmesh &&

@@ -965,15 +965,13 @@ void Hud::drawBlockBounds()
 				const auto &mesh_step = block->far_step;
 				int g = 0;
 
-				if (!inFarGrid(blockPos, getNodeBlockPos(
-								client_map
-										.far_blocks_last_cam_pos), mesh_step,
-							client_map.getControl()))
-					{
-						// DUMP("Not in grid", blockPos,  block->far_step, mesh_step, block->getTimestamp(), client->getEnv() .getClientMap() .m_far_blocks_last_cam_pos);
-						// continue;
-						g+=50;
-					}
+				if (!inFarGrid(blockPos,
+							getNodeBlockPos(client_map.far_blocks_last_cam_pos),
+							client_map.getControl())) {
+					// DUMP("Not in grid", blockPos,  block->far_step, mesh_step, block->getTimestamp(), client->getEnv() .getClientMap() .m_far_blocks_last_cam_pos);
+					// continue;
+					g += 50;
+				}
 
 				int fscale = 1;
 				int lod_step = 0;
