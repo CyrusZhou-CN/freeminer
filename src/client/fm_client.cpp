@@ -295,14 +295,11 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 		++m_new_farmeshes;
 
 		//todo: step ordered thread pool
-		mesh_thread_pool.enqueue([this, block]() mutable {
+		mesh_thread_pool.enqueue([this, block, step]() mutable {
 			auto &client_map = getEnv().getClientMap();
 			const auto &control = client_map.getControl();
 			const auto bpos = block->getPos();
-			const auto fmesh_step_ = getFarStep(control,
-					getNodeBlockPos(client_map.far_blocks_last_cam_pos), block->getPos());
-			if (!inFarGrid(block->getPos(),
-						getNodeBlockPos(client_map.far_blocks_last_cam_pos), fmesh_step_,
+			if (!inFarGrid(bpos, getNodeBlockPos(client_map.far_blocks_last_cam_pos),
 						control)) {
 				return;
 			}
