@@ -936,14 +936,15 @@ void Hud::drawBlockBounds()
 
 	// 3s16 pos = player->getStandingNodePos();
 
-	if (m_block_bounds_mode == BLOCK_BOUNDS_FAR_DRAWN || m_block_bounds_mode == BLOCK_BOUNDS_FAR_DRAWN_EACH) {
+const auto is_each_mode= m_block_bounds_mode == BLOCK_BOUNDS_FAR_DRAWN_EACH;
+	if (m_block_bounds_mode == BLOCK_BOUNDS_FAR_DRAWN || is_each_mode) {
 		const auto offset = intToFloat(client->getCamera()->getOffset(), BS);
 
 		//s8 radius = m_block_bounds_mode == BLOCK_BOUNDS_NEAR ? 2 : 0;
 
 		const auto halfNode = v3opos_t(BS, BS, BS) / 2.0f;
 		const auto &client_map = client->getEnv().getClientMap();
- 		const auto & far_blocks = client_map.m_far_blocks;
+ 		const auto &far_blocks = client_map.m_far_blocks;
 
 		if (const auto lock = far_blocks.try_lock_shared_rec(); lock->owns_lock()) {
 			for (const auto &[blockPos, block] : far_blocks) {
@@ -963,12 +964,12 @@ void Hud::drawBlockBounds()
 				const auto &mesh_step = block->far_step;
 				int g = 0;
 
-				if (!inFarGrid(blockPos,
-							getNodeBlockPos(client_map.far_blocks_last_cam_pos),
-							client_map.getControl(),
-							m_block_bounds_mode == BLOCK_BOUNDS_FAR_DRAWN_EACH)) {
+				if (!inFarGrid(client_map.getControl(),
+							getNodeBlockPos(client_map.far_blocks_last_cam_pos), blockPos,
+							mesh_step, is_each_mode)) {
 					// DUMP("Not in grid", blockPos,  block->far_step, mesh_step, block->getTimestamp(), client->getEnv() .getClientMap() .m_far_blocks_last_cam_pos);
-					// continue;
+					if (is_each_mode)
+						continue;
 					g += 50;
 				}
 
@@ -984,6 +985,9 @@ void Hud::drawBlockBounds()
 					fscale = mesh->fscale;
 					lod_step = mesh->lod_step;
 					far_step = mesh->far_step;
+				}
+				if (is_each_mode) {
+					fscale = 1 << block->far_step;
 				}
 				const aabb3f box(oposToV3f(intToFloat((blockPos)*MAP_BLOCKSIZE, BS) -
 										   offset - halfNode + 1),

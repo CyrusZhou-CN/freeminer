@@ -1139,7 +1139,7 @@ void ClientMap::updateDrawListFm(float dtime, unsigned int max_cycle_ms)
 
 			{
 				blocks_skip_farmesh.emplace(getFarActualBlockPos(
-						bp, getNodeBlockPos(far_blocks_last_cam_pos), m_control));
+						m_control, getNodeBlockPos(far_blocks_last_cam_pos), bp ));
 			}
 
 			if (mesh) {

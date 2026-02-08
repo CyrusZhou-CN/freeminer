@@ -299,8 +299,8 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 			auto &client_map = getEnv().getClientMap();
 			const auto &control = client_map.getControl();
 			const auto bpos = block->getPos();
-			if (!inFarGrid(bpos, getNodeBlockPos(client_map.far_blocks_last_cam_pos),
-						control)) {
+			if (!inFarGrid(control, getNodeBlockPos(client_map.far_blocks_last_cam_pos),
+						bpos, step)) {
 				return;
 			}
 			createFarMesh(block);

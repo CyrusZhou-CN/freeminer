@@ -65,8 +65,8 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bne
 	const auto blockpos_actual =
 			blockpos_actual_optional.has_value() ? blockpos_actual_optional.value()
 			: bnear								 ? blockpos
-												 : getFarActualBlockPos(blockpos,
-														   getNodeBlockPos(m_camera_pos_aligned), draw_control);
+												 : getFarActualBlockPos(draw_control,
+														   getNodeBlockPos(m_camera_pos_aligned), blockpos);
 	auto &far_blocks = //near ? m_client->getEnv().getClientMap().m_far_near_blocks :
 			client_map.m_far_blocks;
 	if (const auto it = client_map.far_blocks_storage[step].find(blockpos_actual);
@@ -154,7 +154,7 @@ void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, block_step_t step)
 	for (const auto &dir : use_dirs) {
 		const auto bpos_dir = blockpos + dir * step_width;
 		const auto bpos = getFarActualBlockPos(
-				bpos_dir, getNodeBlockPos(m_camera_pos_aligned), control);
+				control, getNodeBlockPos(m_camera_pos_aligned), bpos_dir);
 		const auto block_step_correct =
 				getFarStep(control, getNodeBlockPos(m_camera_pos_aligned), bpos);
 		makeFarBlock(bpos, block_step_correct, {}, bpos);
