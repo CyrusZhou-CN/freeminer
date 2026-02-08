@@ -183,7 +183,7 @@ void Client::createFarMesh(MapBlockPtr &block)
 		//const auto &m_camera_offset = m_camera->getOffset();
 		const auto &step = block->far_step;
 		MeshMakeData mdat(m_client->getNodeDefManager(),
-				MAP_BLOCKSIZE * m_client->getMeshGrid().cell_size, m_mesh_grid, 0, step,
+				MAP_BLOCKSIZE * m_mesh_grid.cell_size, m_mesh_grid, 0, step,
 				&m_client->far_container);
 		mdat.m_blockpos = blockpos_actual;
 		const auto mbmsh = std::make_shared<MapBlockMesh>(m_client, &mdat);
