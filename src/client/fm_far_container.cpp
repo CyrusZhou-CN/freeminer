@@ -21,17 +21,18 @@ thread_local std::pair<block_step_t, v3bpos_t> block_cache_p;
 
 const MapNode &FarContainer::getNodeRefUnsafe(const v3pos_t &pos)
 {
-	const auto bpos = getNodeBlockPos(pos);
+	const auto block_pos = getNodeBlockPos(pos);
 	auto &client_map = m_client->getEnv().getClientMap();
-	const auto player_bpos = getNodeBlockPos(client_map.far_blocks_last_cam_pos);
+	const auto player_block_pos = getNodeBlockPos(client_map.far_blocks_last_cam_pos);
 	const auto &control = client_map.getControl();
-	const auto step = getFarStep(control, player_bpos, bpos, {}, true
-			//	, 0
-	);
-	const v3bpos_t bpos_aligned =
-			getFarActualBlockPos(bpos, player_bpos, control, {}, true
-					//	, 0
-			);
+
+	const auto tree_result = getFarParams(control, player_block_pos, block_pos);
+	if (!tree_result) {
+		return m_mg->visible_transparent;
+	}
+	const auto &step = tree_result->step;
+	const v3bpos_t &bpos_aligned = tree_result->pos;
+
 	MapBlockPtr block;
 	const auto step_block_pos = std::make_pair(step, bpos_aligned);
 	if (block_cache && step_block_pos == block_cache_p) {
@@ -93,8 +94,8 @@ const MapNode &FarContainer::getNodeRefUnsafe(const v3pos_t &pos)
 		const v3pos_t relpos = pos - bpos_aligned * MAP_BLOCKSIZE;
 
 		const auto &relpos_shift = step;
-		const auto relpos_shifted = v3pos_t(relpos.X >> relpos_shift,
-				relpos.Y >> relpos_shift, relpos.Z >> relpos_shift);
+		const auto relpos_shifted = v3pos_t{relpos.X >> relpos_shift,
+				relpos.Y >> relpos_shift, relpos.Z >> relpos_shift};
 		const auto &n = block->getNodeNoLock(relpos_shifted);
 		if (n.getContent() != CONTENT_IGNORE) {
 			return n;
