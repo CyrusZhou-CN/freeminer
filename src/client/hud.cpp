@@ -964,7 +964,7 @@ const auto is_each_mode= m_block_bounds_mode == BLOCK_BOUNDS_FAR_DRAWN_EACH;
 				const auto &mesh_step = block->far_step;
 				int g = 0;
 
-				if (!inFarGrid(client_map.getControl(),
+				if (!farmesh::inFarGrid(client_map.getControl(),
 							getNodeBlockPos(client_map.far_blocks_last_cam_pos), blockPos,
 							mesh_step, is_each_mode)) {
 					// DUMP("Not in grid", blockPos,  block->far_step, mesh_step, block->getTimestamp(), client->getEnv() .getClientMap() .m_far_blocks_last_cam_pos);

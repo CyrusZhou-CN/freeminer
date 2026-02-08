@@ -26,7 +26,7 @@ const MapNode &FarContainer::getNodeRefUnsafe(const v3pos_t &pos)
 	const auto player_block_pos = getNodeBlockPos(client_map.far_blocks_last_cam_pos);
 	const auto &control = client_map.getControl();
 
-	const auto tree_result = getFarParams(control, player_block_pos, block_pos);
+	const auto tree_result = farmesh::getFarParams(control, player_block_pos, block_pos);
 	if (!tree_result) {
 		return m_mg->visible_transparent;
 	}

@@ -28,6 +28,9 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 #include "irr_v3d.h"
 #include "irrlichttypes.h"
 
+namespace farmesh
+{
+
 block_step_t getLodStep(const MapDrawControl &draw_control,
 		const v3bpos_t &playerblockpos, const v3bpos_t &blockpos, const pos_t speedf)
 {
@@ -228,7 +231,7 @@ std::optional<tree_result_t> find(const find_param_t &param,
 	}
 	return {};
 }
-
+/*
 const auto nearest_pow2 = [](const int v) -> int8_t {
 	if (v == 0)
 		return 0;
@@ -240,7 +243,7 @@ const auto nearest_pow2 = [](const int v) -> int8_t {
 	}
 	return n;
 };
-
+*/
 struct tree_params_t
 {
 	const int16_t tree_pow;
@@ -256,9 +259,9 @@ struct tree_params_t
 #endif
 };
 
-const auto farmesh_to_tree_pow = [](const int farmesh) {
+const auto farmesh_to_tree_pow = [](const auto farmesh) {
 	return std::min<int16_t>(tree_params_t::tree_pow_max,
-			nearest_pow2(farmesh) - 1); // -2 ? TODO: test and tune
+			rangeToStep(farmesh) - 1); // -2 ? TODO: test and tune
 };
 
 child_t tree_params_to_child(
@@ -445,3 +448,4 @@ void runFarAll(const v3bpos_t &ppos, uint8_t cell_size_pow, int farmesh,
 }
 
 #endif
+}

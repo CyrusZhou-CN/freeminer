@@ -27,6 +27,9 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 
 struct MapDrawControl;
 
+namespace farmesh
+{
+
 #if USE_POS32
 constexpr uint16_t tree_pow_default = FARMESH_STEP_MAX;
 #else
@@ -79,3 +82,4 @@ void runFarAll(const v3bpos_t &player_block_pos, uint8_t cell_size_pow, int farm
 				&func);
 
 uint8_t rangeToStep(const int range);
+}
