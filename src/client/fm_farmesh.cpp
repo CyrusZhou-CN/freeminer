@@ -65,8 +65,8 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bne
 	const auto blockpos_actual =
 			blockpos_actual_optional.has_value() ? blockpos_actual_optional.value()
 			: bnear								 ? blockpos
-												 : getFarActualBlockPos(draw_control,
-														   getNodeBlockPos(m_camera_pos_aligned), blockpos);
+					: farmesh::getFarActualBlockPos(draw_control,
+							  getNodeBlockPos(m_camera_pos_aligned), blockpos);
 	auto &far_blocks = //near ? m_client->getEnv().getClientMap().m_far_near_blocks :
 			client_map.m_far_blocks;
 	if (const auto it = client_map.far_blocks_storage[step].find(blockpos_actual);
@@ -153,10 +153,10 @@ void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, block_step_t step)
 	const auto step_width = 1 << (step - 1 + control.cell_size_pow);
 	for (const auto &dir : use_dirs) {
 		const auto bpos_dir = blockpos + dir * step_width;
-		const auto bpos = getFarActualBlockPos(
+		const auto bpos = farmesh::getFarActualBlockPos(
 				control, getNodeBlockPos(m_camera_pos_aligned), bpos_dir);
 		const auto block_step_correct =
-				getFarStep(control, getNodeBlockPos(m_camera_pos_aligned), bpos);
+				farmesh::getFarStep(control, getNodeBlockPos(m_camera_pos_aligned), bpos);
 		makeFarBlock(bpos, block_step_correct, {}, bpos);
 	}
 }
@@ -279,7 +279,7 @@ int FarMesh::go_container()
 	thread_local static const s16 farmesh_all_changed =
 			g_settings->getU32("farmesh_all_changed");
 
-	runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
+	farmesh::runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
 			draw_control.farmesh_quality_pow, 0, false,
 			[this, &cbpos](const v3bpos_t &bpos, const bpos_t &size,
 					const block_step_t &step) -> bool {
@@ -323,7 +323,7 @@ int FarMesh::go_flat()
 
 	// todo: maybe save blocks while cam pos not changed
 	std::array<std::unordered_set<v3bpos_t>, FARMESH_STEP_MAX> blocks;
-	runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
+	farmesh::runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
 			draw_control.farmesh_quality_pow, cbpos.Y ?: 1, true,
 			[this, &draw_control, &blocks](const v3bpos_t &bpos, const bpos_t &size,
 					const block_step_t &step) -> bool {
@@ -341,7 +341,7 @@ int FarMesh::go_flat()
 												 (bpos_new.Z << MAP_BLOCKP) - 1)) >>
 								 MAP_BLOCKP;
 
-					const auto step_new = getFarStep(draw_control,
+					const auto step_new = farmesh::getFarStep(draw_control,
 							getNodeBlockPos(m_camera_pos_aligned), bpos_new //, 0
 					);
 
@@ -416,9 +416,9 @@ int FarMesh::go_direction(const size_t dir_n)
 			g_profiler->avg("Client: Farmesh processed", 1);
 #endif
 			//const auto dstep = ray_cache.step_num; // + 1;
-			auto block_step_prev =
-					getFarStepBad(draw_control, getNodeBlockPos(m_camera_pos_aligned),
-							getNodeBlockPos(floatToInt(pos_last, BS)));
+			auto block_step_prev = farmesh::getFarStepBad(draw_control,
+					getNodeBlockPos(m_camera_pos_aligned),
+					getNodeBlockPos(floatToInt(pos_last, BS)));
 
 			const auto step_width_shift = (block_step_prev - block_step_reduce);
 			const auto step_width = MAP_BLOCKSIZE
@@ -451,7 +451,8 @@ int FarMesh::go_direction(const size_t dir_n)
 				break;
 			}
 
-			const int step_aligned_pow = rangeToStep(step_width) - align_reduce; // ceil ?
+			const int step_aligned_pow =
+					farmesh::rangeToStep(step_width) - align_reduce; // ceil ?
 			const auto pos_int = align_shift(
 					floatToInt(pos, BS), step_aligned_pow > 0 ? step_aligned_pow : 0);
 
