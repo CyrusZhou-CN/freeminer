@@ -25,12 +25,13 @@ const MapNode &FarContainer::getNodeRefUnsafe(const v3pos_t &pos)
 	auto &client_map = m_client->getEnv().getClientMap();
 	const auto player_bpos = getNodeBlockPos(client_map.far_blocks_last_cam_pos);
 	const auto &control = client_map.getControl();
-	const auto step = getFarStep(control, player_bpos, bpos
+	const auto step = getFarStep(control, player_bpos, bpos, {}, true
 			//	, 0
 	);
-	const v3bpos_t bpos_aligned = getFarActualBlockPos(bpos, player_bpos, control
-			//	, 0
-	);
+	const v3bpos_t bpos_aligned =
+			getFarActualBlockPos(bpos, player_bpos, control, {}, true
+					//	, 0
+			);
 	MapBlockPtr block;
 	const auto step_block_pos = std::make_pair(step, bpos_aligned);
 	if (block_cache && step_block_pos == block_cache_p) {

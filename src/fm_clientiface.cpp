@@ -632,8 +632,10 @@ uint32_t RemoteClient::SendFarBlocks(const int32_t uptime)
 			const auto &use_farmesh_all_changed =
 					std::min(setting_farmesh_all_changed, farmesh_all_changed);
 			runFarAll(cbpos, cell_size_pow, farmesh, rangeToStep(farmesh_quality), false,
+					true,
 					[this, &ordered, &cbpos, &use_farmesh_all_changed](
-							const v3bpos_t &bpos, const bpos_t &size) -> bool {
+							const v3bpos_t &bpos, const bpos_t &size,
+							const block_step_t &step) -> bool {
 						if (!size) {
 							return false;
 						}
@@ -644,7 +646,7 @@ uint32_t RemoteClient::SendFarBlocks(const int32_t uptime)
 							return false;
 						}
 
-						block_step_t step = rangeToStep(size);
+						//block_step_t step = rangeToStep(size);
 						if (far_blocks_requested.size() < step) {
 							far_blocks_requested.resize(step);
 						}

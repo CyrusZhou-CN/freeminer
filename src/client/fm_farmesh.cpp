@@ -280,9 +280,9 @@ int FarMesh::go_container()
 			g_settings->getU32("farmesh_all_changed");
 
 	runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
-			draw_control.farmesh_quality_pow, 0,
-			[this, &cbpos](const v3bpos_t &bpos, const bpos_t &size) -> bool {
-				const block_step_t step = rangeToStep(size);
+			draw_control.farmesh_quality_pow, 0, false,
+			[this, &cbpos](const v3bpos_t &bpos, const bpos_t &size,
+					const block_step_t &step) -> bool {
 
 				if (step >= FARMESH_STEP_MAX) {
 					return false;
@@ -324,9 +324,9 @@ int FarMesh::go_flat()
 	// todo: maybe save blocks while cam pos not changed
 	std::array<std::unordered_set<v3bpos_t>, FARMESH_STEP_MAX> blocks;
 	runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
-			draw_control.farmesh_quality_pow, cbpos.Y ?: 1,
-			[this, &draw_control, &blocks](
-					const v3bpos_t &bpos, const bpos_t &size) -> bool {
+			draw_control.farmesh_quality_pow, cbpos.Y ?: 1, true,
+			[this, &draw_control, &blocks](const v3bpos_t &bpos, const bpos_t &size,
+					const block_step_t &step) -> bool {
 				for (const auto &add : {
 							 v2bpos_t(0, 0),
 							 v2bpos_t(0, size - 1),
@@ -342,7 +342,8 @@ int FarMesh::go_flat()
 								 MAP_BLOCKP;
 
 					const auto step_new = getFarStep(draw_control,
-							getNodeBlockPos(m_camera_pos_aligned), bpos_new);
+							getNodeBlockPos(m_camera_pos_aligned), bpos_new //, 0
+					);
 
 					if (step_new >= FARMESH_STEP_MAX)
 						continue;

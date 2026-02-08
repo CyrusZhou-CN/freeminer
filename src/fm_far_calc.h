@@ -45,20 +45,21 @@ struct tree_params
 block_step_t getLodStep(const MapDrawControl &draw_control,
 		const v3bpos_t &playerblockpos, const v3bpos_t &block_pos, const pos_t speedf);
 block_step_t getFarStepCellSize(const MapDrawControl &draw_control, const v3bpos_t &ppos,
-		const v3bpos_t &blockpos, uint8_t cell_size_pow);
+		const v3bpos_t &blockpos, uint8_t cell_size_pow, bool cell_each = false);
 block_step_t getFarStep(const MapDrawControl &draw_control,
 		const v3bpos_t &playerblockpos, const v3bpos_t &block_pos,
-		const std::optional<uint8_t> &cell_size_pow = {});
+		const std::optional<uint8_t> &cell_size_pow = {}, bool cell_each = false);
 block_step_t getFarStepBad(const MapDrawControl &draw_control,
 		const v3bpos_t &playerblockpos, const v3bpos_t &block_pos);
 bool inFarGrid(const v3bpos_t &blockpos, const v3bpos_t &playerblockpos,
-		const MapDrawControl &draw_control);
+		const MapDrawControl &draw_control, bool cell_each = false);
 v3bpos_t getFarActualBlockPos(const v3bpos_t &blockpos, const v3bpos_t &playerblockpos,
 		const MapDrawControl &draw_control,
-		const std::optional<uint8_t> &cell_size_pow = {});
+		const std::optional<uint8_t> &cell_size_pow = {}, bool cell_each = false);
 v3bpos_t playerBlockAlign(
 		const MapDrawControl &draw_control, const v3bpos_t &playerblockpos);
 void runFarAll(const v3bpos_t &ppos, uint8_t cell_size_pow, int farmesh,
-		uint8_t farmesh_quality_pow, pos_t two_d,
-		const std::function<bool(const v3bpos_t &, const bpos_t &)> &func);
+		uint8_t farmesh_quality_pow, pos_t two_d, bool cell_each,
+		const std::function<bool(const v3bpos_t &, const bpos_t &, const block_step_t &)>
+				&func);
 uint8_t rangeToStep(const int range);
