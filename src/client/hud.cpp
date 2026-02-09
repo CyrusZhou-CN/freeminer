@@ -987,7 +987,7 @@ const auto is_each_mode= m_block_bounds_mode == BLOCK_BOUNDS_FAR_DRAWN_EACH;
 					far_step = mesh->far_step;
 				}
 				if (is_each_mode) {
-					fscale = 1 << block->far_step;
+					fscale = 1 << mesh_step;
 				}
 				const aabb3f box(oposToV3f(intToFloat((blockPos)*MAP_BLOCKSIZE, BS) -
 										   offset - halfNode + 1),

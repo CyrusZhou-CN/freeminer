@@ -298,23 +298,37 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 		mesh_thread_pool.enqueue([this, block, step]() mutable {
 			auto &client_map = getEnv().getClientMap();
 			const auto &control = client_map.getControl();
-			const auto bpos = block->getPos();
-			if (!farmesh::inFarGrid(control,
-						getNodeBlockPos(client_map.far_blocks_last_cam_pos), bpos,
-						step)) {
+			const auto blockpos = block->getPos();
+			const auto res = farmesh::getFarParams(control,
+					getNodeBlockPos(client_map.far_blocks_last_cam_pos), blockpos);
+			if (!res)
 				return;
+			auto &far_blocks = client_map.m_far_blocks;
+			bool other_draw_block = false;
+			if (!(res->pos == blockpos && res->step == step)) {
+				const auto lock = far_blocks.lock_unique_rec();
+				if (const auto &it = far_blocks.find(res->pos);
+						it != far_blocks.end() && it->second->far_step == step) {
+					block = it->second;
+					other_draw_block = true;
+					// TODO: throttle ~1s to wait nearby block datas
+				} else {
+					return;
+				}
 			}
 			createFarMesh(block);
-			auto &far_blocks = client_map.m_far_blocks;
+			if (other_draw_block)
+				return;
 
 			const auto lock = far_blocks.lock_unique_rec();
-			if (const auto &it = far_blocks.find(bpos); it != far_blocks.end()) {
+			if (const auto &it = far_blocks.find(blockpos); it != far_blocks.end()) {
 				if (it->second->far_step != block->far_step) {
 					return;
 				}
 				block->far_iteration =
 						it->second->far_iteration.load(std::memory_order::relaxed);
-				far_blocks.at(bpos) = block;
+
+				far_blocks.at(blockpos) = block;
 			}
 		});
 

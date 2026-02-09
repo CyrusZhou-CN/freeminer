@@ -98,7 +98,7 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bne
 			block = it->second;
 		} else {
 			if (!block) {
-				m_client->getEnv().getClientMap().m_far_blocks_ask.emplace(
+				client_map.m_far_blocks_ask.emplace(
 						blockpos_actual, std::make_pair(step, far_iteration_complete));
 
 				block = client_map.createBlankBlockNoInsert(blockpos_actual);
@@ -121,7 +121,7 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bne
 	return;
 }
 
-void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, block_step_t step)
+void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, const block_step_t step)
 {
 #if FARMESH_DEBUG || FARMESH_FAST
 	{
@@ -153,10 +153,13 @@ void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, block_step_t step)
 	const auto step_width = 1 << (step - 1 + control.cell_size_pow);
 	for (const auto &dir : use_dirs) {
 		const auto bpos_dir = blockpos + dir * step_width;
-		const auto bpos = farmesh::getFarActualBlockPos(
+		const auto tree_result = farmesh::getFarParams(
 				control, getNodeBlockPos(m_camera_pos_aligned), bpos_dir);
-		const auto block_step_correct =
-				farmesh::getFarStep(control, getNodeBlockPos(m_camera_pos_aligned), bpos);
+		if (!tree_result) {
+			continue;
+		}
+		const auto &block_step_correct = tree_result->step;
+		const v3bpos_t &bpos = tree_result->pos;
 		makeFarBlock(bpos, block_step_correct, {}, bpos);
 	}
 }
@@ -274,14 +277,14 @@ auto align_shift(auto pos, const auto amount)
 int FarMesh::go_container()
 {
 	const auto &draw_control = *m_control;
-	const auto cbpos = getNodeBlockPos(m_camera_pos_aligned);
+	const auto player_block_pos = getNodeBlockPos(m_camera_pos_aligned);
 
 	thread_local static const s16 farmesh_all_changed =
 			g_settings->getU32("farmesh_all_changed");
 
-	farmesh::runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
+	farmesh::runFarAll(player_block_pos, draw_control.cell_size_pow, draw_control.farmesh,
 			draw_control.farmesh_quality_pow, 0, false,
-			[this, &cbpos](const v3bpos_t &bpos, const bpos_t &size,
+			[this, &player_block_pos](const v3bpos_t &bpos, const bpos_t &size,
 					const block_step_t &step) -> bool {
 
 				if (step >= FARMESH_STEP_MAX) {
@@ -289,7 +292,7 @@ int FarMesh::go_container()
 				}
 
 				// TODO: use block center
-				const auto bdist = radius_box(cbpos, bpos);
+				const auto bdist = radius_box(player_block_pos, bpos);
 				if ((bdist << MAP_BLOCKP) > farmesh_all_changed) {
 					return false;
 				}
@@ -319,35 +322,57 @@ int FarMesh::go_flat()
 		return 0;
 	}
 
-	const auto cbpos = getNodeBlockPos(m_camera_pos_aligned);
+	const auto player_block_pos = getNodeBlockPos(m_camera_pos_aligned);
 
 	// todo: maybe save blocks while cam pos not changed
 	std::array<std::unordered_set<v3bpos_t>, FARMESH_STEP_MAX> blocks;
-	farmesh::runFarAll(cbpos, draw_control.cell_size_pow, draw_control.farmesh,
-			draw_control.farmesh_quality_pow, cbpos.Y ?: 1, true,
-			[this, &draw_control, &blocks](const v3bpos_t &bpos, const bpos_t &size,
-					const block_step_t &step) -> bool {
-				for (const auto &add : {
-							 v2bpos_t(0, 0),
-							 v2bpos_t(0, size - 1),
-							 v2bpos_t(size - 1, 0),
-							 v2bpos_t(size - 1, size - 1),
-							 v2bpos_t(size >> 1, size >> 1),
-					 }) {
-					v3bpos_t bpos_new(bpos.X + add.X, 0, bpos.Z + add.Y);
-
+	farmesh::runFarAll(player_block_pos, draw_control.cell_size_pow, draw_control.farmesh,
+			draw_control.farmesh_quality_pow, 1, false,
+			[this, &draw_control, &blocks, &player_block_pos](const v3bpos_t &bpos,
+					const bpos_t &size, const block_step_t &step) -> bool {
+#if 0 // test only
+				{
+					v3bpos_t bpos_new{bpos.X, 0, bpos.Z};
 					bpos_new.Y = mg->getGroundLevelAtPoint(
 										 v2pos_t((bpos_new.X << MAP_BLOCKP) - 1,
 												 (bpos_new.Z << MAP_BLOCKP) - 1)) >>
 								 MAP_BLOCKP;
 
-					const auto step_new = farmesh::getFarStep(draw_control,
-							getNodeBlockPos(m_camera_pos_aligned), bpos_new //, 0
-					);
+					const auto step_new =
+							farmesh::getFarStep(draw_control, player_block_pos, bpos_new);
+					if (step_new >= FARMESH_STEP_MAX)
+						return false;
+
+					blocks[step_new].emplace(bpos_new);
+					return false;
+					}
+#endif
+				const auto add_size = size << draw_control.cell_size_pow;
+				for (const auto &add : {
+							 v2bpos_t(0, 0),
+							 v2bpos_t(0, add_size - 1),
+							 v2bpos_t(add_size - 1, 0),
+							 v2bpos_t(add_size - 1, add_size - 1),
+							 v2bpos_t(add_size >> 1, add_size >> 1),
+
+					 }) {
+					v3bpos_t bpos_new{bpos.X + add.X, 0, bpos.Z + add.Y};
+					bpos_new.Y = mg->getGroundLevelAtPoint(
+										 v2pos_t((bpos_new.X << MAP_BLOCKP) - 1,
+												 (bpos_new.Z << MAP_BLOCKP) - 1)) >>
+								 MAP_BLOCKP;
+
+					const auto res = farmesh::getFarParams(
+							draw_control, player_block_pos, bpos_new);
+					if (!res)
+						continue;
+
+					const auto &bpos_correct = res->pos;
+					const auto &step_new = res->step;
 
 					if (step_new >= FARMESH_STEP_MAX)
 						continue;
-					blocks[step_new].emplace(bpos_new);
+					blocks[step_new].emplace(bpos_correct);
 				}
 				return false;
 			});
@@ -359,10 +384,11 @@ int FarMesh::go_flat()
 		for (const auto &bpos : blocks[last_step]) {
 			// just first suggestion
 			if (1 << (last_step + MAP_BLOCKP) > draw_control.farmesh &&
-					radius_box(bpos, cbpos) << MAP_BLOCKP > last_distance_max) {
+					radius_box(bpos, player_block_pos) << MAP_BLOCKP >
+							last_distance_max) {
 				return last_step;
 			}
-			makeFarBlocks(bpos, last_step);
+			makeFarBlock(bpos, last_step, {}, bpos);
 		}
 	}
 
