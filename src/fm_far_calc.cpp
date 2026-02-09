@@ -145,8 +145,8 @@ bool inFarGrid(const MapDrawControl &draw_control, const v3bpos_t &player_block_
 
 struct find_param_t
 {
-	const v3tpos_t &block_pos;
 	const v3tpos_t &player_pos;
+	const v3tpos_t &block_pos;
 	const uint8_t cell_size_pow;
 	const uint8_t farmesh_quality_pow;
 	const bool cell_size_each{0};
@@ -160,7 +160,7 @@ struct child_t
 
 std::optional<tree_result_t> find(const find_param_t &param,
 		const child_t &child,
-		uint16_t depth = 0)
+		const uint16_t depth = 0)
 {
 	const auto make_result = [&param](const auto &child) {
 		return tree_result_t{
@@ -184,7 +184,7 @@ std::optional<tree_result_t> find(const find_param_t &param,
 		}
 	}
 
-	if (child.size < (1 << (param.cell_size_pow))) {
+	if (child.size <= (1 << (param.cell_size_pow))) {
 		return make_result(child);
 	}
 
@@ -200,28 +200,29 @@ std::optional<tree_result_t> find(const find_param_t &param,
 	if (distance >= next_child_size) {
 		return make_result(child);
 	}
+	const auto childSizePos = childSize;
 	for (const auto &child : {
 				 child_t{.pos{child.pos}, .size = childSize},
 				 child_t{.pos = v3tpos_t(
-								 child.pos.X + childSize, child.pos.Y, child.pos.Z),
+								 child.pos.X + childSizePos, child.pos.Y, child.pos.Z),
 						 .size = childSize},
 				 child_t{.pos = v3tpos_t(
-								 child.pos.X, child.pos.Y + childSize, child.pos.Z),
+								 child.pos.X, child.pos.Y + childSizePos, child.pos.Z),
 						 .size = childSize},
-				 child_t{.pos = v3tpos_t(child.pos.X + childSize, child.pos.Y + childSize,
-								 child.pos.Z),
+				 child_t{.pos = v3tpos_t(child.pos.X + childSizePos,
+								 child.pos.Y + childSizePos, child.pos.Z),
 						 .size = childSize},
 				 child_t{.pos = v3tpos_t(
-								 child.pos.X, child.pos.Y, child.pos.Z + childSize),
+								 child.pos.X, child.pos.Y, child.pos.Z + childSizePos),
 						 .size = childSize},
-				 child_t{.pos = v3tpos_t(child.pos.X + childSize, child.pos.Y,
-								 child.pos.Z + childSize),
+				 child_t{.pos = v3tpos_t(child.pos.X + childSizePos, child.pos.Y,
+								 child.pos.Z + childSizePos),
 						 .size = childSize},
-				 child_t{.pos = v3tpos_t(child.pos.X, child.pos.Y + childSize,
-								 child.pos.Z + childSize),
+				 child_t{.pos = v3tpos_t(child.pos.X, child.pos.Y + childSizePos,
+								 child.pos.Z + childSizePos),
 						 .size = childSize},
-				 child_t{.pos = v3tpos_t(child.pos.X + childSize, child.pos.Y + childSize,
-								 child.pos.Z + childSize),
+				 child_t{.pos = v3tpos_t(child.pos.X + childSizePos,
+								 child.pos.Y + childSizePos, child.pos.Z + childSizePos),
 						 .size = childSize},
 		 }) {
 
@@ -264,17 +265,17 @@ const auto farmesh_to_tree_pow = [](const auto farmesh) {
 			rangeToStep(farmesh) - 1); // -2 ? TODO: test and tune
 };
 
-child_t tree_params_to_child(
-		const tree_params_t &tree_params, const v3bpos_t &ppos, pos_t two_d = {})
+child_t tree_params_to_child(const tree_params_t &tree_params,
+		const v3bpos_t &player_block_pos, pos_t two_d = {})
 {
-	return {.pos = v3tpos_t((((tpos_t)ppos.X >> tree_params.tree_align)
+	return {.pos = v3tpos_t((((tpos_t)player_block_pos.X >> tree_params.tree_align)
 									<< tree_params.tree_align) -
 									(tree_params.tree_align_size >> 1),
 					two_d
-							?: (((tpos_t)(ppos.Y) >> tree_params.tree_align)
+							?: (((tpos_t)(player_block_pos.Y) >> tree_params.tree_align)
 									   << tree_params.tree_align) -
 									   (tree_params.tree_align_size >> 1),
-					(((tpos_t)(ppos.Z) >> tree_params.tree_align)
+					(((tpos_t)(player_block_pos.Z) >> tree_params.tree_align)
 							<< tree_params.tree_align) -
 							(tree_params.tree_align_size >> 1)),
 			.size{tree_params.tree_size}};
@@ -283,14 +284,13 @@ child_t tree_params_to_child(
 std::optional<tree_result_t> getFarParams(const MapDrawControl &draw_control,
 		const v3bpos_t &player_block_pos, const v3bpos_t &blockpos, bool cell_each)
 {
-	const auto blockpos_aligned_cell = blockpos;
+	const auto blockpos_aligned_cell = align_shift(blockpos, draw_control.cell_size_pow);
 	const tree_params_t tree_params{.tree_pow{farmesh_to_tree_pow(draw_control.farmesh)}};
 	const auto start = tree_params_to_child(tree_params, player_block_pos);
 	const auto res = find(
-			{.block_pos{blockpos_aligned_cell.X, blockpos_aligned_cell.Y,
-					 blockpos_aligned_cell.Z},
-					.player_pos{
-							player_block_pos.X, player_block_pos.Y, player_block_pos.Z},
+			{.player_pos{player_block_pos.X, player_block_pos.Y, player_block_pos.Z},
+					.block_pos{blockpos_aligned_cell.X, blockpos_aligned_cell.Y,
+							blockpos_aligned_cell.Z},
 					.cell_size_pow{draw_control.cell_size_pow},
 					.farmesh_quality_pow{draw_control.farmesh_quality_pow},
 					.cell_size_each{cell_each}},
@@ -352,9 +352,9 @@ void each(const each_param_t &param, const child_t &child)
 {
 	const tpos_t childSize = child.size >> 1;
 	const auto distance =
-			(std::max({std::abs((tpos_t)param.player_pos.X + (child.pos.X - childSize)),
-					 std::abs((tpos_t)param.player_pos.Y + (child.pos.Y - childSize)),
-					 std::abs((tpos_t)param.player_pos.Z + (child.pos.Z - childSize))}) >>
+			(std::max({std::abs((tpos_t)param.player_pos.X - (child.pos.X + childSize)),
+					 std::abs((tpos_t)param.player_pos.Y - (child.pos.Y + childSize)),
+					 std::abs((tpos_t)param.player_pos.Z - (child.pos.Z + childSize))}) >>
 					param.cell_size_pow)
 			<< param.cell_size_pow;
 
@@ -369,33 +369,37 @@ void each(const each_param_t &param, const child_t &child)
 		return;
 	}
 
+	const auto childSizeNext = childSize
+							   << (param.cell_size_each ? 0 : param.cell_size_pow);
+
 	uint8_t i{0};
 	for (const auto &child : {
 				 // first with unchanged Y for 2d
 				 child_t{.pos{child.pos}, .size = childSize},
 				 child_t{.pos = v3tpos_t(
-								 child.pos.X + childSize, child.pos.Y, child.pos.Z),
+								 child.pos.X + childSizeNext, child.pos.Y, child.pos.Z),
 						 .size = childSize},
 				 child_t{.pos = v3tpos_t(
-								 child.pos.X, child.pos.Y, child.pos.Z + childSize),
+								 child.pos.X, child.pos.Y, child.pos.Z + childSizeNext),
 						 .size = childSize},
-				 child_t{.pos = v3tpos_t(child.pos.X + childSize, child.pos.Y,
-								 child.pos.Z + childSize),
+				 child_t{.pos = v3tpos_t(child.pos.X + childSizeNext, child.pos.Y,
+								 child.pos.Z + childSizeNext),
 						 .size = childSize},
 
 				 // two_d ends here
 
 				 child_t{.pos = v3tpos_t(
-								 child.pos.X, child.pos.Y + childSize, child.pos.Z),
+								 child.pos.X, child.pos.Y + childSizeNext, child.pos.Z),
 						 .size = childSize},
-				 child_t{.pos = v3tpos_t(child.pos.X + childSize, child.pos.Y + childSize,
-								 child.pos.Z),
+				 child_t{.pos = v3tpos_t(child.pos.X + childSizeNext,
+								 child.pos.Y + childSizeNext, child.pos.Z),
 						 .size = childSize},
-				 child_t{.pos = v3tpos_t(child.pos.X, child.pos.Y + childSize,
-								 child.pos.Z + childSize),
+				 child_t{.pos = v3tpos_t(child.pos.X, child.pos.Y + childSizeNext,
+								 child.pos.Z + childSizeNext),
 						 .size = childSize},
-				 child_t{.pos = v3tpos_t(child.pos.X + childSize, child.pos.Y + childSize,
-								 child.pos.Z + childSize),
+				 child_t{.pos = v3tpos_t(child.pos.X + childSizeNext,
+								 child.pos.Y + childSizeNext,
+								 child.pos.Z + childSizeNext),
 						 .size = childSize},
 		 }) {
 
@@ -420,13 +424,13 @@ void each(const each_param_t &param, const child_t &child)
 	}
 }
 
-void runFarAll(const v3bpos_t &ppos, uint8_t cell_size_pow, int farmesh,
+void runFarAll(const v3bpos_t &player_block_pos, uint8_t cell_size_pow, int farmesh,
 		uint8_t farmesh_quality_pow, pos_t two_d, bool cell_each,
 		const std::function<bool(const v3bpos_t &, const bpos_t &, const block_step_t &)>
 				&func)
 {
 	tree_params_t tree_params{.tree_pow{farmesh_to_tree_pow(farmesh)}};
-	const auto start = tree_params_to_child(tree_params, ppos, two_d);
+	const auto start = tree_params_to_child(tree_params, player_block_pos, two_d);
 	const auto func_convert = [&func](const tree_result_t &child) {
 		return func(
 				v3bpos_t{child.pos.X, child.pos.Y, child.pos.Z}, child.size, child.step);
@@ -435,7 +439,8 @@ void runFarAll(const v3bpos_t &ppos, uint8_t cell_size_pow, int farmesh,
 	// DUMP(start.pos, start.size, tree_align);
 	each(
 			{
-					.player_pos{ppos.X, ppos.Y, ppos.Z},
+					.player_pos{
+							player_block_pos.X, player_block_pos.Y, player_block_pos.Z},
 					.cell_size_pow{cell_size_pow},
 					.farmesh_quality_pow{farmesh_quality_pow},
 					.cell_size_each{cell_each},
