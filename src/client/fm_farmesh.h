@@ -59,7 +59,8 @@ public:
 			v3pos_t m_camera_offset,
 			//float brightness,
 			int render_range, float speed);
-	void makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bnear = false);
+	void makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bnear = false,
+			std::optional<v3bpos_t> blockpos_actual = {});
 	void makeFarBlocks(const v3bpos_t &blockpos, block_step_t step);
 	//void makeFarBlocks(const v3bpos_t &blockpos);
 
@@ -93,7 +94,7 @@ private:
 	static constexpr uint16_t grid_size_xy{grid_size_x * grid_size_y};
 
 	static constexpr uint8_t wait_server_far_block{
-			3}; // minimum 1 ; maybe make dynamic depend on avg server ask/response time, or on fast mode
+			1}; // minimum 1 ; maybe make dynamic depend on avg server ask/response time, or on fast mode
 
 	Mapgen *mg{};
 
