@@ -54,19 +54,14 @@ const v3opos_t g_6dirso[6] = {
 		v3opos_t(0, 1, 0),	// top
 };
 
-void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bnear,
-		std::optional<v3bpos_t> blockpos_actual_optional)
+void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step)
 {
 	g_profiler->add("Client: Farmesh make", 1);
 
 	auto &client_map = m_client->getEnv().getClientMap();
 	//const auto &draw_control = client_map.getControl();
 	const auto &draw_control = *m_control;
-	const auto blockpos_actual =
-			blockpos_actual_optional.has_value() ? blockpos_actual_optional.value()
-			: bnear								 ? blockpos
-					: farmesh::getFarActualBlockPos(draw_control,
-							  getNodeBlockPos(m_camera_pos_aligned), blockpos);
+	const auto blockpos_actual = blockpos;
 	auto &far_blocks = //near ? m_client->getEnv().getClientMap().m_far_near_blocks :
 			client_map.m_far_blocks;
 	if (const auto it = client_map.far_blocks_storage[step].find(blockpos_actual);
@@ -98,8 +93,15 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bne
 			block = it->second;
 		} else {
 			if (!block) {
-				client_map.m_far_blocks_ask.emplace(
-						blockpos_actual, std::make_pair(step, far_iteration_complete));
+				for (pos_t x = 0; x < 1 << draw_control.cell_size_pow; ++x) {
+					for (pos_t y = 0; y < 1 << draw_control.cell_size_pow; ++y) {
+						for (pos_t z = 0; z < 1 << draw_control.cell_size_pow; ++z) {
+							client_map.m_far_blocks_ask.emplace(
+									blockpos_actual + v3bpos_t{x, y, z},
+									std::make_pair(step, far_iteration_complete));
+						}
+					}
+				}
 
 				block = client_map.createBlankBlockNoInsert(blockpos_actual);
 				block->far_step = step;
@@ -123,14 +125,19 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step, bool bne
 
 void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, const block_step_t step)
 {
+	const auto &control = *m_control;
 #if FARMESH_DEBUG || FARMESH_FAST
 	{
-		auto block_step_correct =
-				farmesh::getFarStep(m_client->getEnv().getClientMap().getControl(),
-						getNodeBlockPos(m_camera_pos_aligned), blockpos);
+		const auto tree_result = farmesh::getFarParams(
+				control, getNodeBlockPos(m_camera_pos_aligned), blockpos);
+		if (!tree_result) {
+			return;
+		}
+		const auto &block_step_correct = tree_result->step;
 		if (!block_step_correct)
 			return;
-		return makeFarBlock(blockpos, block_step_correct);
+		const v3bpos_t &bpos = tree_result->pos;
+		return makeFarBlock(bpos, block_step_correct /*, {}, bpos*/);
 	}
 #endif
 
@@ -149,7 +156,6 @@ void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, const block_step_t step)
 			v3pos_t(0, -1, 0), // bottom
 	};
 	const auto &use_dirs = pnear;
-	const auto &control = *m_control;
 	const auto step_width = 1 << (step - 1 + control.cell_size_pow);
 	for (const auto &dir : use_dirs) {
 		const auto bpos_dir = blockpos + dir * step_width;
@@ -159,8 +165,10 @@ void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, const block_step_t step)
 			continue;
 		}
 		const auto &block_step_correct = tree_result->step;
+		if (!block_step_correct)
+			return;
 		const v3bpos_t &bpos = tree_result->pos;
-		makeFarBlock(bpos, block_step_correct, {}, bpos);
+		makeFarBlock(bpos, block_step_correct);
 	}
 }
 
@@ -286,7 +294,6 @@ int FarMesh::go_container()
 			draw_control.farmesh_quality_pow, 0, false,
 			[this, &player_block_pos](const v3bpos_t &bpos, const bpos_t &size,
 					const block_step_t &step) -> bool {
-
 				if (step >= FARMESH_STEP_MAX) {
 					return false;
 				}
@@ -303,7 +310,7 @@ int FarMesh::go_container()
 				const auto contains = it != step_blocks.end() && it->second.block;
 
 				if (contains) {
-					makeFarBlock(bpos, step, {}, bpos);
+					makeFarBlock(bpos, step);
 				}
 
 				return false;
@@ -338,30 +345,30 @@ int FarMesh::go_flat()
 												 (bpos_new.Z << MAP_BLOCKP) - 1)) >>
 								 MAP_BLOCKP;
 
-					const auto step_new =
-							farmesh::getFarStep(draw_control, player_block_pos, bpos_new);
+					const auto res = farmesh::getFarParams(
+							draw_control, player_block_pos, bpos_new);
+					if (!res)
+						return false;
+					const auto &step_new = res->step;
+					const auto &bpos_new_correct = res->pos;
 					if (step_new >= FARMESH_STEP_MAX)
 						return false;
 
-					blocks[step_new].emplace(bpos_new);
+					blocks[step_new].emplace(bpos_new_correct);
 					return false;
-					}
+				}
 #endif
-				const auto add_size = size << draw_control.cell_size_pow;
+				const auto add_size = 1 << (step + draw_control.cell_size_pow);
 				for (const auto &add : {
-							 v2bpos_t(0, 0),
-							 v2bpos_t(0, add_size - 1),
-							 v2bpos_t(add_size - 1, 0),
-							 v2bpos_t(add_size - 1, add_size - 1),
-							 v2bpos_t(add_size >> 1, add_size >> 1),
-
+							 v3bpos_t{0, 0, 0},
+							 v3bpos_t{0, add_size, 0},
+							 v3bpos_t{0, -add_size, 0},
 					 }) {
-					v3bpos_t bpos_new{bpos.X + add.X, 0, bpos.Z + add.Y};
-					bpos_new.Y = mg->getGroundLevelAtPoint(
-										 v2pos_t((bpos_new.X << MAP_BLOCKP) - 1,
-												 (bpos_new.Z << MAP_BLOCKP) - 1)) >>
-								 MAP_BLOCKP;
-
+					v3bpos_t bpos_new{bpos.X + add.X, add.Y, bpos.Z + add.Z};
+					bpos_new.Y += mg->getGroundLevelAtPoint(
+										  v2pos_t{(bpos_new.X << MAP_BLOCKP) - 1,
+												  (bpos_new.Z << MAP_BLOCKP) - 1}) >>
+								  MAP_BLOCKP;
 					const auto res = farmesh::getFarParams(
 							draw_control, player_block_pos, bpos_new);
 					if (!res)
@@ -388,7 +395,7 @@ int FarMesh::go_flat()
 							last_distance_max) {
 				return last_step;
 			}
-			makeFarBlock(bpos, last_step, {}, bpos);
+			makeFarBlock(bpos, last_step);
 		}
 	}
 
@@ -656,7 +663,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 			}
 		}
 
-		go_container();
+		//go_container();
 
 		planes_processed_last = planes_processed;
 
@@ -743,4 +750,10 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 
 		return planes_processed;
 	}
+}
+
+void FarMesh::enqueueFarMeshForBlock(const v3bpos_t &blockpos, const block_step_t step,
+		const MapBlockPtr &block, const double timestamp)
+{
+	farmesh_make_queue[step].insert_or_assign(blockpos, BlockTodo{block, timestamp});
 }
