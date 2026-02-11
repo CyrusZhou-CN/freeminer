@@ -284,10 +284,10 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 		auto &far_blocks_storage = getEnv().getClientMap().far_blocks_storage[step];
 		{
 			const auto lock = far_blocks_storage.lock_unique_rec();
-			if (const auto it = far_blocks_storage.find(bpos);
-					it != far_blocks_storage.end() && it->second.block) {
-				return;
-			}
+			// if (const auto it = far_blocks_storage.find(bpos);
+			// 		it != far_blocks_storage.end() && it->second.block) {
+			// 	return;
+			// }
 
 			far_blocks_storage.insert_or_assign(
 					block->getPos(), Map::BlockUsed{block, (int32_t)m_uptime});
@@ -298,16 +298,18 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 		mesh_thread_pool.enqueue([this, block, step]() mutable {
 			auto &client_map = getEnv().getClientMap();
 			const auto &control = client_map.getControl();
-			const auto blockpos = block->getPos();
-			const auto res = farmesh::getFarParams(control,
+			auto blockpos = block->getPos();
+			const auto tree_result = farmesh::getFarParams(control,
 					getNodeBlockPos(client_map.far_blocks_last_cam_pos), blockpos);
-			if (!res)
+			if (!tree_result)
 				return;
 			auto &far_blocks = client_map.m_far_blocks;
 			bool other_draw_block = false;
-			if (!(res->pos == blockpos && res->step == step)) {
+			if (tree_result->pos != blockpos || tree_result->step != step) {
+				step = tree_result->step;
+				blockpos = tree_result->pos;
 				const auto lock = far_blocks.lock_unique_rec();
-				if (const auto &it = far_blocks.find(res->pos);
+				if (const auto &it = far_blocks.find(blockpos);
 						it != far_blocks.end() && it->second->far_step == step) {
 					block = it->second;
 					other_draw_block = true;
@@ -319,16 +321,17 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 			createFarMesh(block);
 			if (other_draw_block)
 				return;
+			{
+				const auto lock = far_blocks.lock_unique_rec();
+				if (const auto &it = far_blocks.find(blockpos); it != far_blocks.end()) {
+					if (it->second->far_step != block->far_step) {
+						return;
+					}
+					block->far_iteration =
+							it->second->far_iteration.load(std::memory_order::relaxed);
 
-			const auto lock = far_blocks.lock_unique_rec();
-			if (const auto &it = far_blocks.find(blockpos); it != far_blocks.end()) {
-				if (it->second->far_step != block->far_step) {
-					return;
+					far_blocks.at(blockpos) = block;
 				}
-				block->far_iteration =
-						it->second->far_iteration.load(std::memory_order::relaxed);
-
-				far_blocks.at(blockpos) = block;
 			}
 		});
 
