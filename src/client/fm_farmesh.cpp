@@ -97,7 +97,7 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step)
 					for (pos_t y = 0; y < 1 << draw_control.cell_size_pow; ++y) {
 						for (pos_t z = 0; z < 1 << draw_control.cell_size_pow; ++z) {
 							client_map.m_far_blocks_ask.emplace(
-							blockpos_actual + v3bpos_t{x, y, z} * (1 << step),
+									blockpos_actual + v3bpos_t{x, y, z} * (1 << step),
 									std::make_pair(step, far_iteration_complete));
 						}
 					}
@@ -358,17 +358,20 @@ int FarMesh::go_flat()
 					return false;
 				}
 #endif
-				const auto add_size = 1 << (step + draw_control.cell_size_pow);
+				const bpos_t add_size = 1 << (step + draw_control.cell_size_pow);
 				for (const auto &add : {
 							 v3bpos_t{0, 0, 0},
 							 v3bpos_t{0, add_size, 0},
-							 v3bpos_t{0, -add_size, 0},
+							 v3bpos_t{0, static_cast<bpos_t>(-add_size), 0},
 					 }) {
-					v3bpos_t bpos_new{bpos.X + add.X, add.Y, bpos.Z + add.Z};
-					bpos_new.Y += mg->getGroundLevelAtPoint(
-										  v2pos_t{(bpos_new.X << MAP_BLOCKP) - 1,
-												  (bpos_new.Z << MAP_BLOCKP) - 1}) >>
-								  MAP_BLOCKP;
+					v3bpos_t bpos_new{static_cast<bpos_t>(bpos.X + add.X), add.Y,
+							static_cast<bpos_t>(bpos.Z + add.Z)};
+					bpos_new.Y +=
+							mg->getGroundLevelAtPoint(v2pos_t{
+									static_cast<pos_t>((bpos_new.X << MAP_BLOCKP) - 1),
+									static_cast<pos_t>(
+											(bpos_new.Z << MAP_BLOCKP) - 1)}) >>
+							MAP_BLOCKP;
 					const auto res = farmesh::getFarParams(
 							draw_control, player_block_pos, bpos_new);
 					if (!res)
