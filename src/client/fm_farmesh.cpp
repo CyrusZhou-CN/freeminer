@@ -97,7 +97,7 @@ void FarMesh::makeFarBlock(const v3bpos_t &blockpos, block_step_t step)
 					for (pos_t y = 0; y < 1 << draw_control.cell_size_pow; ++y) {
 						for (pos_t z = 0; z < 1 << draw_control.cell_size_pow; ++z) {
 							client_map.m_far_blocks_ask.emplace(
-									blockpos_actual + v3bpos_t{x, y, z},
+							blockpos_actual + v3bpos_t{x, y, z} * (1 << step),
 									std::make_pair(step, far_iteration_complete));
 						}
 					}

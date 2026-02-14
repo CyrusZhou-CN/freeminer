@@ -26,7 +26,8 @@ const MapNode &FarContainer::getNodeRefUnsafe(const v3pos_t &pos)
 	const auto player_block_pos = getNodeBlockPos(client_map.far_blocks_last_cam_pos);
 	const auto &control = client_map.getControl();
 
-	const auto tree_result = farmesh::getFarParams(control, player_block_pos, block_pos, true);
+	const auto tree_result =
+			farmesh::getFarParams(control, player_block_pos, block_pos, true);
 	if (tree_result) {
 	const auto &step = tree_result->step;
 	const v3bpos_t &bpos_aligned = tree_result->pos;
@@ -44,8 +45,8 @@ const MapNode &FarContainer::getNodeRefUnsafe(const v3pos_t &pos)
 
 	const auto loadBlock = [this, &client_map](
 								   const auto &bpos, const auto step) -> MapBlockPtr {
-		auto *dbase =
-				GetFarDatabase({}, m_client->far_dbases, m_client->m_world_path, step);
+			auto *dbase = GetFarDatabase(
+					{}, m_client->far_dbases, m_client->m_world_path, step);
 		if (!dbase) {
 			return {};
 		}
@@ -100,6 +101,7 @@ const MapNode &FarContainer::getNodeRefUnsafe(const v3pos_t &pos)
 		}
 	}
 	}
+
 	if (const auto &v = m_mg->visible_content(pos, use_weather); v.getContent()) {
 		return v;
 	}
