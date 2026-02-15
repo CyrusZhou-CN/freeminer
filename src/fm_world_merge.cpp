@@ -246,7 +246,6 @@ WorldMerger::one_block_stat_t WorldMerger::merge_one_block(MapDatabase *dbase,
 			if (!size)
 				continue;
 			const auto coef = std::log2(size);
-			DUMP(step, size, coef);
 			for (const auto &lp : block->m_light_points) {
 				++one_step_stat.lights_count;
 				++lights_in_block;
