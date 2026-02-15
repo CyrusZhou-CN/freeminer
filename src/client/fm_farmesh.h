@@ -57,11 +57,13 @@ public:
 			v3pos_t m_camera_offset,
 			//float brightness,
 			int render_range, float speed);
-	void makeFarBlock(const v3bpos_t &blockpos, block_step_t step);
+	void makeFarBlock(
+			const v3bpos_t &blockpos, block_step_t step, const bool low_priority = false);
 	void makeFarBlocks(const v3bpos_t &blockpos, block_step_t step);
 
 	void enqueueFarMeshForBlock(const v3bpos_t &blockpos, const block_step_t step,
-			const MapBlockPtr &block, const double timestamp);
+			const MapBlockPtr &block, const double timestamp,
+			const bool low_priority = false);
 
 private:
 	//std::vector<v3bpos_t> m_make_far_blocks_list;
@@ -115,7 +117,7 @@ private:
 	std::atomic_uint last_distance_max{};
 	int go_direction(const size_t dir_n);
 	int go_flat();
-	int go_container();
+	int go_container(const block_step_t step_limit = 0);
 	uint32_t far_iteration_complete{};
 	bool complete_set{};
 	uint32_t collect_reset_timestamp{static_cast<uint32_t>(-1)};
@@ -123,12 +125,14 @@ private:
 	std::array<async_step_runner, 6> async;
 	async_step_runner async_cleaner;
 	int async_cleaner_next{};
-
+	bool farmesh_flat{true};
+	bool farmesh_ray{true};
 	struct BlockTodo
 	{
 		MapBlockPtr block;
 		double timestamp;
 	};
-	std::array<concurrent_unordered_map<v3bpos_t, BlockTodo>, FARMESH_STEP_MAX>
+	std::array<concurrent_unordered_map<v3bpos_t, BlockTodo>, FARMESH_STEP_MAX * 2>
 			farmesh_make_queue;
+	std::atomic_bool farmesh_make_queue_complete{true};
 };

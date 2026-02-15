@@ -1,8 +1,8 @@
 #include <atomic>
 #include <exception>
-#include <future>
 #include <memory>
 #include "client.h"
+#include "client/fm_farmesh.h"
 #include "client/mapblock_mesh.h"
 #include "clientmap.h"
 #include "emerge.h"
@@ -17,6 +17,7 @@
 #include "mapgen/mapgen.h"
 #include "network/fm_networkprotocol.h"
 #include "network/networkpacket.h"
+#include "profiler.h"
 #include "server.h"
 #include "threading/lock.h"
 #include "util/directiontables.h"
@@ -178,17 +179,24 @@ void Client::MakeEmerge(const Settings &settings, const MapgenType &mgtype)
 void Client::createFarMesh(MapBlockPtr &block)
 {
 	if (bool cmp = false; block->creating_far_mesh.compare_exchange_weak(cmp, true)) {
+		g_profiler->add("Client: Farmesh mesh", 1);
+		block->far_make_mesh_timestamp = -1;
+		block->far_status = MapBlock::far_status_e::s5_mesh_start;
+
 		const auto &m_client = this;
-		const auto &blockpos_actual = block->getPos();
+		const auto &blockpos = block->getPos();
 		//const auto &m_camera_offset = m_camera->getOffset();
 		const auto &step = block->far_step;
-		MeshMakeData mdat(m_client->getNodeDefManager(),
-				MAP_BLOCKSIZE * m_mesh_grid.cell_size, m_mesh_grid, 0, step,
-				&m_client->far_container);
-		mdat.m_blockpos = blockpos_actual;
-		const auto mbmsh = std::make_shared<MapBlockMesh>(m_client, &mdat);
-		block->setFarMesh(mbmsh, step);
+		MeshMakeData mesh_make_data(m_client->getNodeDefManager(),
+				MAP_BLOCKSIZE * m_mesh_grid.cell_size, m_mesh_grid, 0,
+
+				step, &m_client->far_container);
+		mesh_make_data.m_blockpos = blockpos;
+		const auto mesh = std::make_shared<MapBlockMesh>(m_client, &mesh_make_data);
+		block->setFarMesh(mesh, step);
 		block->creating_far_mesh = false;
+		block->far_status = MapBlock::far_status_e::s6_mesh_complete;
+		++m_client->m_new_meshes;
 	}
 }
 
@@ -207,11 +215,22 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 
 	MapBlockPtr block{};
 	if (step) {
-		block = m_env.getMap().createBlankBlockNoInsert(bpos);
+		auto &far_blocks_storage = getEnv().getClientMap().far_blocks_storage[step];
+		{
+			const auto lock = far_blocks_storage.lock_unique_rec();
+			if (const auto it = far_blocks_storage.find(bpos);
+					it != far_blocks_storage.end() && it->second.block) {
+				block = it->second.block;
+			}
+		}
+		if (!block) {
+			block = m_env.getMap().createBlankBlockNoInsert(bpos);
+		}
 	} else {
 		block = m_env.getMap().getBlock(bpos);
-		if (!block)
+		if (!block) {
 			block = m_env.getMap().createBlankBlock(bpos);
+		}
 	}
 	{
 		const auto lock = block->lock_unique_rec();
@@ -281,24 +300,22 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 			return;
 		}
 
-		auto &far_blocks_storage = getEnv().getClientMap().far_blocks_storage[step];
-		{
-			const auto lock = far_blocks_storage.lock_unique_rec();
-			// if (const auto it = far_blocks_storage.find(bpos);
-			// 		it != far_blocks_storage.end() && it->second.block) {
-			// 	return;
-			// }
+		block->far_make_mesh_timestamp = m_uptime + 1 + step / 3;
+		block->far_status = MapBlock::far_status_e::s3_recieved;
 
+		auto &far_blocks_storage = getEnv().getClientMap().far_blocks_storage[step];
 			far_blocks_storage.insert_or_assign(
 					block->getPos(), Map::BlockUsed{block, (int32_t)m_uptime});
-		}
 		++m_new_farmeshes;
 
 		//todo: step ordered thread pool
-		mesh_thread_pool.enqueue([this, block, step]() mutable {
+		[this, block, step]() mutable {
 			auto &client_map = getEnv().getClientMap();
 			const auto &control = client_map.getControl();
 			auto blockpos = block->getPos();
+			const auto blockpos_original = blockpos;
+			const auto step_original = step;
+
 			const auto tree_result = farmesh::getFarParams(control,
 					getNodeBlockPos(client_map.far_blocks_last_cam_pos), blockpos);
 			if (!tree_result)
@@ -306,22 +323,29 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 			auto &far_blocks = client_map.m_far_blocks;
 			bool other_draw_block = false;
 			if (tree_result->pos != blockpos || tree_result->step != step) {
+				other_draw_block = true;
 				step = tree_result->step;
 				blockpos = tree_result->pos;
 				const auto lock = far_blocks.lock_unique_rec();
 				if (const auto &it = far_blocks.find(blockpos);
 						it != far_blocks.end() && it->second->far_step == step) {
 					block = it->second;
-					other_draw_block = true;
+					block->far_make_mesh_timestamp = m_uptime + 1 + step / 3;
+					block->far_status = MapBlock::far_status_e::s3_recieved;
+
 					// TODO: throttle ~1s to wait nearby block datas
 				} else {
 					return;
 				}
 			}
-			createFarMesh(block);
-			if (other_draw_block)
+			farmesh->enqueueFarMeshForBlock(
+					blockpos, step, block, m_uptime, other_draw_block);
+
+			if (other_draw_block) {
 				return;
-			{
+			}
+
+			if (0) {
 				const auto lock = far_blocks.lock_unique_rec();
 				if (const auto &it = far_blocks.find(blockpos); it != far_blocks.end()) {
 					if (it->second->far_step != block->far_step) {
@@ -333,7 +357,7 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 					far_blocks.at(blockpos) = block;
 				}
 			}
-		});
+		}();
 
 // if decide to generate empty areas on server:
 #if 0
