@@ -1022,7 +1022,7 @@ void Hud::drawBlockBounds()
 										   offset - halfNode + 1),
 						oposToV3f(intToFloat(((blockPos)*MAP_BLOCKSIZE) +
 													 (MAP_BLOCKSIZE << mesh_step) -
-													 (1 << mesh_step), // - 1
+													 (mesh_step), // - 1
 										  BS) -
 								  offset + halfNode - 1));
 				driver->draw3DBox(box, video::SColor(200 + b, 255 - lod_step * 10 + b,

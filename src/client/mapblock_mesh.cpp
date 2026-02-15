@@ -756,10 +756,10 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 			const auto &storage =
 					client->getEnv().getClientMap().far_blocks_storage[far_step];
 			int index_i = 0;
-			for (ofs.Z = 0; ofs.Z < mesh_grid.cell_size; ofs.Z++) {
-				for (ofs.Y = 0; ofs.Y < mesh_grid.cell_size; ofs.Y++) {
-					for (ofs.X = 0; ofs.X < mesh_grid.cell_size; ofs.X++) {
-						v3bpos_t p = (bp + ofs); // * MAP_BLOCKSIZE;
+			for (ofs.Z = 0; ofs.Z < mesh_grid.cell_size; ++ofs.Z) {
+				for (ofs.Y = 0; ofs.Y < mesh_grid.cell_size; ++ofs.Y) {
+					for (ofs.X = 0; ofs.X < mesh_grid.cell_size; ++ofs.X) {
+						const v3bpos_t p = bp + ofs * (1 << far_step);
 						const auto block = storage.get(p).block;
 
 						if (!block)
@@ -783,8 +783,8 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 							const video::SColor c(0 / fscale, r, g, b);
 							const auto lpos_rel = lp.first - bpos_rel;
 							const auto coord = posToFloat(lpos_rel, BS);
-							video::S3DVertex v(coord.X, coord.Y, coord.Z, 0.0f, 0.0f,
-									1.0f, c, 0.0f, 0.0f);
+							const video::S3DVertex v(coord.X, coord.Y, coord.Z, 0.0f,
+									0.0f, 1.0f, c, 0.0f, 0.0f);
 							buffer->Vertices->Data.emplace_back(v);
 							buffer->Indices->Data.emplace_back(index_i);
 						}
