@@ -65,11 +65,13 @@ public:
 			const MapBlockPtr &block, const double timestamp,
 			const bool low_priority = false);
 
+	bool game_update_complete{};
+
 private:
 	//std::vector<v3bpos_t> m_make_far_blocks_list;
 
 	v3opos_t m_camera_pos = {-1337, -1337, -1337};
-	v3pos_t m_camera_pos_aligned{0, 0, 0};
+	v3pos_t m_camera_pos_aligned{-1337, -1337, -1337};
 	/*v3f m_camera_dir;
 	f32 m_camera_fov;
 	f32 m_camera_pitch;
@@ -119,6 +121,7 @@ private:
 	int go_flat();
 	int go_container(const block_step_t step_limit = 0);
 	uint32_t far_iteration_complete{};
+	double far_iteration_updated_uptime{};
 	bool complete_set{};
 	uint32_t collect_reset_timestamp{static_cast<uint32_t>(-1)};
 	uint8_t planes_processed_last{};

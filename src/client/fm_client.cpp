@@ -1,3 +1,4 @@
+#include "client/fm_farmesh.h"
 #include <atomic>
 #include <exception>
 #include <memory>
@@ -62,8 +63,11 @@ void Client::sendGetBlocks()
 	if (!farmesh_server)
 		return;
 
-	auto &far_blocks = m_env.getClientMap().m_far_blocks_ask;
-	const auto lock = far_blocks.lock_unique_rec();
+	ServerMap::far_blocks_ask_t far_blocks;
+	{
+		const auto lock = m_env.getClientMap().m_far_blocks_ask.lock_unique_rec();
+		std::swap(far_blocks, m_env.getClientMap().m_far_blocks_ask);
+	}
 
 	if (far_blocks.empty()) {
 		return;
@@ -76,8 +80,6 @@ void Client::sendGetBlocks()
 	PACK(TOSERVER_GET_BLOCKS_BLOCKS,
 			static_cast<std::remove_reference_t<decltype(far_blocks)>::full_type>(
 					far_blocks));
-	far_blocks.clear();
-	lock->unlock();
 
 	NetworkPacket pkt(TOSERVER_GET_BLOCKS, buffer.size());
 	pkt.putLongString({buffer.data(), buffer.size()});
@@ -216,16 +218,16 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 	MapBlockPtr block{};
 	if (step) {
 		auto &far_blocks_storage = getEnv().getClientMap().far_blocks_storage[step];
-		{
-			const auto lock = far_blocks_storage.lock_unique_rec();
-			if (const auto it = far_blocks_storage.find(bpos);
-					it != far_blocks_storage.end() && it->second.block) {
-				block = it->second.block;
-			}
+		const auto lock = far_blocks_storage.lock_unique_rec();
+		if (const auto it = far_blocks_storage.find(bpos);
+				it != far_blocks_storage.end() && it->second.block) {
+			block = it->second.block;
 		}
 		if (!block) {
 			block = m_env.getMap().createBlankBlockNoInsert(bpos);
 		}
+		far_blocks_storage.insert_or_assign(
+				bpos, Map::BlockUsed{block, (int32_t)m_uptime});
 	} else {
 		block = m_env.getMap().getBlock(bpos);
 		if (!block) {
@@ -303,9 +305,6 @@ void Client::handleCommand_BlockDataFm(NetworkPacket *pkt)
 		block->far_make_mesh_timestamp = m_uptime + 1 + step / 3;
 		block->far_status = MapBlock::far_status_e::s3_recieved;
 
-		auto &far_blocks_storage = getEnv().getClientMap().far_blocks_storage[step];
-			far_blocks_storage.insert_or_assign(
-					block->getPos(), Map::BlockUsed{block, (int32_t)m_uptime});
 		++m_new_farmeshes;
 
 		//todo: step ordered thread pool
@@ -419,7 +418,8 @@ void Client::sendDrawControl()
 	//PACK(TOSERVER_DRAWCONTROL_FOV, draw_control.fov);
 	//PACK(TOSERVER_DRAWCONTROL_BLOCK_OVERFLOW, false /*draw_control.block_overflow*/);
 	//PACK(TOSERVER_DRAWCONTROL_LODMESH, draw_control.lodmesh);
-	PACK(TOSERVER_DRAWCONTROL_FARMESH_QUALITY, draw_control.farmesh_quality);
+	PACK(TOSERVER_DRAWCONTROL_FARMESH_QUALITY,
+			std::max<block_step_t>(draw_control.farmesh_quality, draw_control.cell_size));
 	PACK(TOSERVER_DRAWCONTROL_FARMESH_ALL_CHANGED, draw_control.farmesh_all_changed);
 
 	NetworkPacket pkt(TOSERVER_DRAWCONTROL, buffer.size());
