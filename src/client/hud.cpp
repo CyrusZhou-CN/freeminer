@@ -978,6 +978,7 @@ void Hud::drawBlockBounds()
 				int fscale = 1;
 				int lod_step = 0;
 				int far_step = 0;
+				int r = 0;
 				int b = 0;
 				const auto &mesh = block->getFarMesh(mesh_step);
 				if (!mesh || !mesh->getMesh() || !mesh->getMesh()->getMeshBufferCount()) {
@@ -989,6 +990,7 @@ void Hud::drawBlockBounds()
 					lod_step = mesh->lod_step;
 					far_step = mesh->far_step;
 					//box = mesh->getMesh(0)->getBoundingBox();
+					if (mesh->isEmpty()) { r+=50;}
 				}
 				if (is_each_mode) {
 					fscale = 1 << mesh_step;
@@ -1003,7 +1005,7 @@ void Hud::drawBlockBounds()
 									offset + halfNode - 1)};
 				}
 				driver->draw3DBox(
-						box.value(), video::SColor(200 + b, 255 - lod_step * 10 + b,
+						box.value(), video::SColor(200 + b, 255 - r + lod_step * 10,
 											 255 - g - far_step * 10, fscale * 20));
 			}
 		}

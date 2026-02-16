@@ -118,10 +118,10 @@ auto align_shift(auto pos, const auto amount)
 }
 
 v3bpos_t playerBlockAlign(
-		const MapDrawControl &draw_control, const v3bpos_t &playerblockpos)
+		const MapDrawControl &draw_control, const v3bpos_t &player_block_pos)
 {
 	const auto step_pow2 = draw_control.cell_size_pow + draw_control.farmesh_quality_pow;
-	return align_shift(playerblockpos, step_pow2) + (step_pow2 >> 1);
+	return align_shift(player_block_pos, step_pow2) + (step_pow2 >> 1);
 }
 
 #if 1

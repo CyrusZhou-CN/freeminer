@@ -568,13 +568,16 @@ queue_full_break:
 
 uint32_t RemoteClient::SendFarBlocks(const int32_t uptime)
 {
+
+	TimeTaker time("Server: Send far [ms]");
+
 	const static thread_local auto client_unload_unused_data_timeout =
 			g_settings->getFloat("client_unload_unused_data_timeout");
 	uint16_t sent_cnt{};
 	TRY_UNIQUE_LOCK(far_blocks_requested_mutex)
 	{
 		std::multimap<int32_t, MapBlockPtr> ordered;
-		constexpr uint16_t send_max{50};
+		constexpr uint16_t send_max{100};
 		for (auto &far_blocks : far_blocks_requested) {
 			for (auto &[bpos, step_sent] : far_blocks) {
 				auto &[step, sent_ts] = step_sent;
