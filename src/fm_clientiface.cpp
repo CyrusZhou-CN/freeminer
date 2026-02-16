@@ -375,7 +375,7 @@ int RemoteClient::GetNextBlocksFm(ServerEnvironment *env, EmergeManager *emerge,
 				Check if map has this block
 			*/
 
-			MapBlock *block;
+			MapBlockPtr block;
 			if (0) {
 				const auto lock = env->getMap().m_blocks.try_lock_shared_rec();
 				if (!lock->owns_lock()) {
@@ -384,9 +384,9 @@ int RemoteClient::GetNextBlocksFm(ServerEnvironment *env, EmergeManager *emerge,
 						first_skipped_d = d;
 					continue;
 				}
-				block = env->getMap().getBlockNoCreateNoEx(p);
+				block = env->getMap().getBlock(p);
 			}
-			block = env->getMap().getBlockNoCreateNoEx(p);
+			block = env->getMap().getBlock(p);
 
 			// bool surely_not_found_on_disk = false;
 			// bool block_is_invalid = false;
@@ -395,8 +395,8 @@ int RemoteClient::GetNextBlocksFm(ServerEnvironment *env, EmergeManager *emerge,
 						block->data[0].param0 == CONTENT_AIR) {
 					uint8_t not_air = 0;
 					for (const auto &dir : g_6dirs) {
-						if (const auto *block_near =
-										env->getMap().getBlockNoCreateNoEx(p + dir)) {
+						if (const auto block_near = env->getMap().getBlock(p + dir)) {
+							const auto lock = block_near->lock_shared_rec();
 							if (block_near->m_is_mono_block &&
 									block_near->data[0].param0 != CONTENT_AIR) {
 								++not_air;
