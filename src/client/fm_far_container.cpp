@@ -2,6 +2,7 @@
 #include "client.h"
 #include "client/clientmap.h"
 #include "constants.h"
+#include "database/database.h"
 #include "fm_far_calc.h"
 #include "irr_v3d.h"
 #include "mapblock.h"
