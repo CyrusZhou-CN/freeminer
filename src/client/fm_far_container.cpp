@@ -1,7 +1,7 @@
 #include "fm_far_container.h"
 #include "client.h"
 #include "client/clientmap.h"
-#include "database/database.h"
+#include "constants.h"
 #include "fm_far_calc.h"
 #include "irr_v3d.h"
 #include "mapblock.h"
@@ -90,16 +90,20 @@ const MapNode &FarContainer::getNodeRefUnsafe(const v3pos_t &pos)
 			block_cache_p = step_block_pos;
 			block_cache = block;
 
-			const v3pos_t relpos = pos - bpos_aligned * MAP_BLOCKSIZE;
-
+			const v3pos_t relpos{pos - bpos_aligned * MAP_BLOCKSIZE};
 			const auto &relpos_shift = step;
-			const auto relpos_shifted =
-					v3pos_t{static_cast<pos_t>(relpos.X >> relpos_shift),
-							static_cast<pos_t>(relpos.Y >> relpos_shift),
-							static_cast<pos_t>(relpos.Z >> relpos_shift)};
-			const auto &n = block->getNodeNoLock(relpos_shifted);
-			if (n.getContent() != CONTENT_IGNORE) {
-				return n;
+			const v3pos_t relpos_shifted{static_cast<pos_t>(std::min(MAP_BLOCKSIZE - 1,
+												 relpos.X >> relpos_shift)),
+					static_cast<pos_t>(
+							std::min(MAP_BLOCKSIZE - 1, relpos.Y >> relpos_shift)),
+					static_cast<pos_t>(
+							std::min(MAP_BLOCKSIZE - 1, relpos.Z >> relpos_shift))};
+			{
+				const auto &n = block->getNodeNoLock(relpos_shifted);
+				if (n.getContent() != CONTENT_IGNORE) {
+					// Dangerous, returning ref to not locked block
+					return n;
+				}
 			}
 		}
 	}
