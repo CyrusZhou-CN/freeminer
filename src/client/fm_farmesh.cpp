@@ -416,7 +416,7 @@ int FarMesh::go_flat()
 				int low_priority = 0;
 				for (const auto &add : {
 							 v3bpos_t{0, 0, 0},
-							 v3bpos_t{0, add_size, 0},
+							 v3bpos_t{0, static_cast<bpos_t>(add_size), 0},
 							 v3bpos_t{0, static_cast<bpos_t>(-add_size), 0},
 					 }) {
 					v3bpos_t bpos_new{static_cast<bpos_t>(bpos.X + add.X), add.Y,
