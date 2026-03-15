@@ -293,7 +293,7 @@ public:
 	struct BlockUsed
 	{
 		MapBlockPtr block{};
-		int32_t last_used{};
+		int32_t far_last_used{};
 	};
 	std::array<concurrent_unordered_map<v3bpos_t, BlockUsed>, FARMESH_STEP_MAX> far_blocks_storage;
 	//double m_far_blocks_created = 0;
@@ -339,7 +339,7 @@ public:
 	{
 		return getNodeTry(p);
 	};
-	inline MapNode &getNodeRefUnsafe(const v3pos_t &p) override { return getNodeRef(p); }
+	inline const MapNode getNodeRefUnsafe(const v3pos_t &p) override { return getNodeRef(p); }
 
 	// bool isBlockOccluded(const v3pos_t &pos, const v3pos_t &cam_pos_nodes);
 
