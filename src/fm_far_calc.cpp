@@ -173,7 +173,7 @@ std::optional<tree_result_t> find(
 	const auto make_result = [&param](const auto &child) {
 		return tree_result_t{
 				.pos{to_v3bpos(child.pos)},
-				.size{child.size >> (param.cell_size_each ? 0 : param.cell_size_pow)},
+				.size{to_bpos(child.size >> (param.cell_size_each ? 0 : param.cell_size_pow))},
 				.step{static_cast<block_step_t>(
 						rangeToStep(child.size) -
 						(param.cell_size_each ? 0 : param.cell_size_pow))},
