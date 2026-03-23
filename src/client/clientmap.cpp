@@ -146,6 +146,47 @@ void MapDrawControl::fm_init()
 		lodmesh = 0;
 
 	fov_want = fov = g_settings->getFloat("fov");
+	registerSettingsCallbacks();
+}
+
+void MapDrawControl::registerSettingsCallbacks()
+{
+	g_settings->registerChangedCallback("farmesh", [](const std::string &name, void *data) {
+		static_cast<MapDrawControl*>(data)->onSettingChanged(name);
+	}, this);
+	
+	g_settings->registerChangedCallback("lodmesh", [](const std::string &name, void *data) {
+		static_cast<MapDrawControl*>(data)->onSettingChanged(name);
+	}, this);
+	
+	g_settings->registerChangedCallback("farmesh_quality", [](const std::string &name, void *data) {
+		static_cast<MapDrawControl*>(data)->onSettingChanged(name);
+	}, this);
+	
+	g_settings->registerChangedCallback("farmesh_stable", [](const std::string &name, void *data) {
+		static_cast<MapDrawControl*>(data)->onSettingChanged(name);
+	}, this);
+	
+	g_settings->registerChangedCallback("farmesh_all_changed", [](const std::string &name, void *data) {
+		static_cast<MapDrawControl*>(data)->onSettingChanged(name);
+	}, this);
+
+}
+
+void MapDrawControl::onSettingChanged(const std::string &name)
+{
+	if (name == "farmesh")
+		farmesh = g_settings->getS32("farmesh");
+	if (name == "lodmesh")
+		lodmesh = g_settings->getS32("lodmesh");
+	if (name == "farmesh_quality") {
+		farmesh_quality = g_settings->getU16("farmesh_quality");
+		farmesh_quality_pow = farmesh::rangeToStep(farmesh_quality);
+	}
+	if (name == "farmesh_stable")
+		farmesh_stable = g_settings->getBool("farmesh_stable");
+	if (name == "farmesh_all_changed")
+		farmesh_all_changed = g_settings->getPos("farmesh_all_changed");
 }
 /*
 	ClientMap
