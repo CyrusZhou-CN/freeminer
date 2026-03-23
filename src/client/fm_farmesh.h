@@ -122,9 +122,10 @@ private:
 	int go_direction(const size_t dir_n);
 	int go_flat();
 	int go_container(bool only_received, const block_step_t step_limit = 0);
-	uint32_t far_iteration_complete{};
-	double far_iteration_updated_uptime{};
+	uint32_t far_iteration_pos{};
+	double far_iteration_pos_time{};
 	bool complete_set{};
+	bool grid_finished{};
 	uint32_t collect_reset_timestamp{static_cast<uint32_t>(-1)};
 	//uint8_t planes_processed_last{};
 	std::array<async_step_runner, 6> async;
@@ -140,6 +141,7 @@ private:
 	std::array<concurrent_unordered_map<v3bpos_t, BlockTodo>, FARMESH_STEP_MAX * 2>
 			farmesh_make_queue;
 	std::atomic_bool farmesh_make_queue_complete{true};
+	std::atomic_size_t farmesh_make_queue_processed{};
 
 	std::thread farmesh_thread;
 	bool farmesh_thread_stop{};
