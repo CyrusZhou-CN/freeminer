@@ -366,7 +366,8 @@ void Client::Stop()
 		m_localdb.reset();
 	}
 
-	farmesh->stop();
+	if(farmesh)
+		farmesh->stop();
 	// TODO: correct order:
 	mesh_thread_pool.wait_until_empty();
 	farmesh_async.wait();
