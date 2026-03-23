@@ -514,12 +514,16 @@ void ClientMap::cleanPerodic(uint32_t uptime)
 
 void Client::registerClientSettingsCallbacks()
 {
+/*
+Via FarMesh
 	g_settings->registerChangedCallback(
 			"client_mesh_chunk",
 			[](const std::string &name, void *data) {
 				static_cast<Client *>(data)->onSettingChanged(name);
 			},
 			this);
+*/
+
 }
 
 void Client::onSettingChanged(const std::string &name)

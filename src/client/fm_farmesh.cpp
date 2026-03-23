@@ -236,6 +236,33 @@ void FarMesh::makeFarBlocks(const v3bpos_t &blockpos)
 }
 #endif
 
+static const std::string FarMesh_settings[] = {
+		"farmesh",			   // MapDrawControl
+		"lodmesh",			   // MapDrawControl
+		"farmesh_quality",	   // MapDrawControl
+		"farmesh_stable",	   // MapDrawControl
+		"farmesh_all_changed", // MapDrawControl
+		"client_mesh_chunk",   // ClientMap
+		"farmesh_flat",		   // Farmesh
+		"farmesh_ray",		   // Farmesh
+};
+
+void FarMesh::onSettingChanged(const std::string &name)
+{
+	restart();
+	if (name == "farmesh_flat") {
+		g_settings->getBoolNoEx("farmesh_flat", farmesh_flat);
+
+	} else if (name == "farmesh_ray") {
+		g_settings->getBoolNoEx("farmesh_ray", farmesh_ray);
+	}
+
+	m_client->getEnv().getClientMap().getControl().onSettingChanged(name);
+	m_client->onSettingChanged(name);
+
+	restart();
+}
+
 FarMesh::FarMesh(Client *client, Server *server) :
 		m_client{client}, m_control{&m_client->getEnv().getClientMap().getControl()}
 {
@@ -278,6 +305,15 @@ FarMesh::FarMesh(Client *client, Server *server) :
 	//auto rng = std::default_random_engine{};
 	//std::shuffle(std::begin(process_order), std::end(process_order), rng);
 	farmesh_thread = std::thread(&FarMesh::processFarmeshQueue, this);
+
+	for (const auto &name : FarMesh_settings) {
+		g_settings->registerChangedCallback(
+				name,
+				[](const std::string &name, void *data) {
+					static_cast<FarMesh *>(data)->onSettingChanged(name);
+				},
+				this);
+	}
 }
 
 void FarMesh::processFarmeshQueue()
@@ -331,6 +367,7 @@ void FarMesh::processFarmeshQueue()
 
 FarMesh::~FarMesh()
 {
+	g_settings->deregisterAllChangedCallbacks(this);
 	farmesh_thread_stop = true;
 	if (farmesh_thread.joinable()) {
 		farmesh_thread.join();
@@ -639,6 +676,15 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 	if (!mg) {
 		return {};
 	}
+	auto &client_map = m_client->getEnv().getClientMap();
+
+	if (want_reset) {
+		want_reset = false;
+
+		far_iteration_pos = client_map.far_iteration_grid =
+				client_map.far_iteration_mesh = client_map.far_iteration_use =
+						client_map.far_iteration_clean = 0;
+	}
 
 	m_speed = speed;
 
@@ -648,7 +694,6 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 			(std::min<unsigned int>(render_range, 1.2 * m_client->fog_range / BS) >> 7)
 			<< 7;
 
-	auto &client_map = m_client->getEnv().getClientMap();
 	const auto far_old = far_iteration_pos_time + 5 < m_client->m_uptime;
 	const auto far_fast =
 			!m_control->farmesh_stable &&
@@ -678,6 +723,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 			}
 			farmesh_make_queue_processed = 0;
 			farmesh_make_queue_complete = false;
+			auto &client_map = m_client->getEnv().getClientMap();
 			client_map.m_far_blocks_ask.clear();
 			client_map.far_iteration_mesh = client_map.far_iteration_grid;
 		}
@@ -686,10 +732,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 
 	if (!far_iteration_pos) {
 		++far_iteration_pos;
-		if (!m_camera_pos_aligned.X && !m_camera_pos_aligned.Y &&
-				!m_camera_pos_aligned.Z) {
-			set_new_cam_pos();
-		}
+		set_new_cam_pos(true);
 	}
 
 	if (0 && complete_set) {
@@ -723,7 +766,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 			// For 2d mapgens only: use simple 2d mesh grid
 			if (plane_processed[0].processed < 0) {
 				++planes_processed;
-				async[0].step([this]() {
+				async_direction[0].step([this]() {
 					plane_processed[0].processed = go_flat();
 					go_container(true, farmesh::rangeToStep(farmesh_all_changed) / 3);
 				});
@@ -756,7 +799,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 				}
 
 				++planes_processed;
-				async[i].step([this, i = i]() {
+				async_direction[i].step([this, i = i]() {
 					plane_processed[i].processed = go_direction(i);
 				});
 			}
@@ -765,7 +808,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 			// Use 3d full grid (will try make mesh for whole volume including not visible top air and bottom undergrounds)
 			if (plane_processed[0].processed < 0) {
 				++planes_processed;
-				async[0].step(
+				async_direction[0].step(
 						[this]() { plane_processed[0].processed = go_container(false); });
 			}
 			grid_finished = true;
@@ -859,4 +902,17 @@ void FarMesh::enqueueFarMeshForBlock(const v3bpos_t &blockpos, const block_step_
 
 	farmesh_make_queue[step + FARMESH_STEP_MAX * low_priority].insert_or_assign(
 			blockpos, BlockTodo{block, timestamp});
+}
+
+void FarMesh::restart()
+{
+	want_reset = true;
+	m_client->farmesh_async.wait();
+	for (auto &a : async_direction) {
+		a.wait();
+	}
+	for (auto &stepit : farmesh_make_queue) {
+		stepit.clear();
+	}
+	m_client->mesh_thread_pool.wait_until_empty();
 }

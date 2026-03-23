@@ -146,11 +146,11 @@ void MapDrawControl::fm_init()
 		lodmesh = 0;
 
 	fov_want = fov = g_settings->getFloat("fov");
-	registerSettingsCallbacks();
 }
 
 void MapDrawControl::registerSettingsCallbacks()
 {
+	/*
 	g_settings->registerChangedCallback("farmesh", [](const std::string &name, void *data) {
 		static_cast<MapDrawControl*>(data)->onSettingChanged(name);
 	}, this);
@@ -170,6 +170,7 @@ void MapDrawControl::registerSettingsCallbacks()
 	g_settings->registerChangedCallback("farmesh_all_changed", [](const std::string &name, void *data) {
 		static_cast<MapDrawControl*>(data)->onSettingChanged(name);
 	}, this);
+	*/
 
 }
 

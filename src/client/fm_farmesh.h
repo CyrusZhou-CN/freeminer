@@ -66,6 +66,7 @@ public:
 			const MapBlockPtr &block, const double timestamp,
 			const bool low_priority = false);
 	void stop() { farmesh_thread_stop = true; }
+	void restart();
 
 	bool game_update_complete{};
 
@@ -124,11 +125,12 @@ private:
 	int go_container(bool only_received, const block_step_t step_limit = 0);
 	uint32_t far_iteration_pos{};
 	double far_iteration_pos_time{};
+	bool want_reset = false;
 	bool complete_set{};
 	bool grid_finished{};
 	uint32_t collect_reset_timestamp{static_cast<uint32_t>(-1)};
 	//uint8_t planes_processed_last{};
-	std::array<async_step_runner, 6> async;
+	std::array<async_step_runner, 6> async_direction;
 	async_step_runner async_cleaner;
 	int async_cleaner_next{};
 	bool farmesh_flat{true};
@@ -146,4 +148,5 @@ private:
 	std::thread farmesh_thread;
 	bool farmesh_thread_stop{};
 	void processFarmeshQueue();
+	void onSettingChanged(const std::string &name);
 };
