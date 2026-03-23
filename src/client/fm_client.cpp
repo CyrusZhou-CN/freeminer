@@ -511,3 +511,28 @@ void ClientMap::cleanPerodic(uint32_t uptime)
 	}
 #endif
 }
+
+void Client::registerClientSettingsCallbacks()
+{
+/*
+Via FarMesh
+	g_settings->registerChangedCallback(
+			"client_mesh_chunk",
+			[](const std::string &name, void *data) {
+				static_cast<Client *>(data)->onSettingChanged(name);
+			},
+			this);
+*/
+
+}
+
+void Client::onSettingChanged(const std::string &name)
+{
+	if (name == "client_mesh_chunk") {
+		m_mesh_grid = {g_settings->getU16("client_mesh_chunk")};
+		// Update the control values that depend on mesh grid
+		auto &control = m_env.getClientMap().getControl();
+		control.cell_size = m_mesh_grid.cell_size;
+		control.cell_size_pow = farmesh::rangeToStep(control.cell_size);
+	}
+}
