@@ -301,6 +301,8 @@ public:
 
 	//static constexpr bool m_far_fast =			true; // show generated far farmesh stable(0) or instant(1)
 	uint32_t far_iteration_use{};
+	uint32_t far_iteration_grid{};
+	uint32_t far_iteration_mesh{};
 	uint32_t far_iteration_clean{};
 	// MapBlock * getBlockNoCreateNoEx(v3pos_t & p);
 	MapBlockPtr createBlankBlockNoInsert(const v3bpos_t &p);
