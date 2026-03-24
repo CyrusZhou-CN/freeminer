@@ -1858,7 +1858,7 @@ void MapblockMeshGenerator::generate()
 				cur_node.n = n;
 				cur_node.f = &nodedef->get(cur_node.n);
 				drawNode();
-
+#if !defined(FARMESH_DEBUG)
 				if (prev_invisibles > 1 && prev_visibles > 2) {
 					// May cause holes
 					break;
@@ -1868,6 +1868,7 @@ void MapblockMeshGenerator::generate()
 				} else {
 					++prev_invisibles;
 				}
+#endif				
 			}
 		}
 }

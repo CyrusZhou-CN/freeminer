@@ -635,9 +635,9 @@ uint32_t RemoteClient::SendFarBlocks(const int32_t uptime)
 			const auto &use_farmesh_all_changed =
 					std::min(setting_farmesh_all_changed, farmesh_all_changed);
 			farmesh::runFarAll(player_block_pos, cell_size_pow, farmesh,
-					farmesh::rangeToStep(farmesh_quality), false, true,
-					[this, &player_block_pos, &use_farmesh_all_changed, &sent_cnt,
-							&ordered](const v3bpos_t &bpos, const bpos_t &size,
+					farmesh::rangeToStep(farmesh_quality), false, true, 0,
+					[this, &ordered, &player_block_pos, &use_farmesh_all_changed](
+							const v3bpos_t &bpos, const bpos_t &size,
 							const block_step_t &step) -> bool {
 						if (!size) {
 							return false;
