@@ -58,7 +58,6 @@ void Client::sendInitFm()
 
 void Client::sendGetBlocks()
 {
-
 	static thread_local const auto farmesh_server = g_settings->getU16("farmesh_server");
 	if (!farmesh_server)
 		return;
@@ -386,12 +385,13 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 						return;
 					}
 				}
-				farmesh->enqueueFarMeshForBlock(
-						blockpos, step, block, m_uptime, other_draw_block);
 
 				if (other_draw_block) {
 					return;
 				}
+
+				farmesh->enqueueFarMeshForBlock(
+						blockpos, step, block, m_uptime, other_draw_block);
 
 				if (0) {
 					const auto lock = far_blocks.lock_unique_rec();
@@ -514,7 +514,7 @@ void ClientMap::cleanPerodic(uint32_t uptime)
 
 void Client::registerClientSettingsCallbacks()
 {
-/*
+	/*
 Via FarMesh
 	g_settings->registerChangedCallback(
 			"client_mesh_chunk",
@@ -523,7 +523,6 @@ Via FarMesh
 			},
 			this);
 */
-
 }
 
 void Client::onSettingChanged(const std::string &name)

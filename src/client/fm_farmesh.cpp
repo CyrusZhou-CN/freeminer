@@ -29,6 +29,7 @@ along with Freeminer.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "client/client.h"
 #include "client/clientmap.h"
+#include "debug/dump.h"
 #include "fm_far_calc.h"
 #include "client/mapblock_mesh.h"
 #include "constants.h"
@@ -388,7 +389,7 @@ int FarMesh::go_container(bool only_received, const block_step_t step_limit)
 	const auto player_block_pos = getNodeBlockPos(m_camera_pos_aligned);
 
 	farmesh::runFarAll(player_block_pos, draw_control.cell_size_pow, draw_control.farmesh,
-			draw_control.farmesh_quality_pow, 0, false,
+			draw_control.farmesh_quality_pow, 0, false, 0,
 			[this, &step_limit, &only_received](const v3bpos_t &bpos, const bpos_t &size,
 					const block_step_t &step) -> bool {
 				if (step >= FARMESH_STEP_MAX) {
@@ -425,16 +426,18 @@ int FarMesh::go_flat()
 	auto &dcache = direction_caches[0][0];
 	auto &last_step = dcache.step_num;
 	// todo: slowly increase range here
-	if (last_step > 0) {
+	const auto max_step = farmesh::rangeToStep(draw_control.farmesh / 3);
+	if (last_step > max_step) {
 		return 0;
 	}
-
+	last_step += 2;
+	DUMP("bef", last_step, max_step, draw_control.farmesh);
 	const auto player_block_pos = getNodeBlockPos(m_camera_pos_aligned);
 
 	// todo: maybe save blocks while cam pos not changed
 	std::array<std::unordered_map<v3bpos_t, bool>, FARMESH_STEP_MAX> blocks;
 	farmesh::runFarAll(player_block_pos, draw_control.cell_size_pow, draw_control.farmesh,
-			draw_control.farmesh_quality_pow, 1, false,
+			draw_control.farmesh_quality_pow, 1, false, last_step + 1,
 			[this, &draw_control, &blocks, &player_block_pos](const v3bpos_t &bpos,
 					const bpos_t &size, const block_step_t &step) -> bool {
 #if 0 // test only
@@ -489,14 +492,15 @@ int FarMesh::go_flat()
 				return false;
 			});
 
-	for (; last_step < blocks.size(); ++last_step) {
-		if (!last_step) {
+	for (auto step = 0; step < blocks.size(); ++step) {
+		if (!step) {
 			continue;
 		}
-		for (const auto &[bpos, low_priority] : blocks[last_step]) {
-			makeFarBlock(bpos, last_step, low_priority);
+		for (const auto &[bpos, low_priority] : blocks[step]) {
+			makeFarBlock(bpos, step, low_priority);
 		}
 	}
+	DUMP("aft", last_step);
 
 	return last_step;
 }
@@ -764,14 +768,15 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 		uint8_t planes_processed{};
 		if (farmesh_flat && mg->surface_2d()) {
 			// For 2d mapgens only: use simple 2d mesh grid
-			if (plane_processed[0].processed < 0) {
+			if (plane_processed[0].processed) {
 				++planes_processed;
 				async_direction[0].step([this]() {
 					plane_processed[0].processed = go_flat();
 					go_container(true, farmesh::rangeToStep(farmesh_all_changed) / 3);
 				});
+			} else {
+				grid_finished = true;
 			}
-			grid_finished = true;
 		} else if (farmesh_ray) {
 			// Try find surface via raytrace
 
@@ -806,12 +811,13 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 			grid_finished = !planes_processed;
 		} else {
 			// Use 3d full grid (will try make mesh for whole volume including not visible top air and bottom undergrounds)
-			if (plane_processed[0].processed < 0) {
+			if (plane_processed[0].processed) {
 				++planes_processed;
 				async_direction[0].step(
 						[this]() { plane_processed[0].processed = go_container(false); });
+			} else {
+				grid_finished = true;
 			}
-			grid_finished = true;
 		}
 
 		if (!farmesh_make_queue_complete) {

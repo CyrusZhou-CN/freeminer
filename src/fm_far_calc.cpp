@@ -173,7 +173,8 @@ std::optional<tree_result_t> find(
 	const auto make_result = [&param](const auto &child) {
 		return tree_result_t{
 				.pos{to_v3bpos(child.pos)},
-				.size{to_bpos(child.size >> (param.cell_size_each ? 0 : param.cell_size_pow))},
+				.size{to_bpos(
+						child.size >> (param.cell_size_each ? 0 : param.cell_size_pow))},
 				.step{static_cast<block_step_t>(
 						rangeToStep(child.size) -
 						(param.cell_size_each ? 0 : param.cell_size_pow))},
@@ -216,8 +217,7 @@ std::optional<tree_result_t> find(
 	const auto distance =
 			(std::max({std::abs((tpos_t)param.player_pos.X - (child.pos.X + dsize)),
 					std::abs((tpos_t)param.player_pos.Y - (child.pos.Y + dsize)),
-					std::abs((tpos_t)param.player_pos.Z - (child.pos.Z + dsize))})
-			);
+					std::abs((tpos_t)param.player_pos.Z - (child.pos.Z + dsize))}));
 	const auto next_child_size =
 			child.size << (1 + std::max(param.farmesh_quality_pow, param.cell_size_pow) -
 						   (param.cell_size_each ? 0 : param.cell_size_pow));
@@ -271,21 +271,21 @@ const auto nearest_pow2 = [](const int v) -> int8_t {
 */
 struct tree_params_t
 {
-	const int16_t tree_pow;
+	const block_step_t tree_pow;
 	const int tree_size = 1 << tree_pow;
-	const int16_t tree_align = tree_pow - 1;
+	const block_step_t tree_align = tree_pow - 1;
 	const int tree_align_size = 1 << (tree_align);
-	const int16_t external_pow = tree_pow - 2;
+	const block_step_t external_pow = tree_pow - 2;
 
 #if USE_POS32
-	static constexpr int16_t tree_pow_max = FARMESH_STEP_MAX;
+	static constexpr block_step_t tree_pow_max = FARMESH_STEP_MAX;
 #else
-	static constexpr int16_t tree_pow_max = 12;
+	static constexpr block_step_t tree_pow_max = 12;
 #endif
 };
 
 const auto farmesh_to_tree_pow = [](const auto farmesh) {
-	return std::min<int16_t>(tree_params_t::tree_pow_max,
+	return std::min<block_step_t>(tree_params_t::tree_pow_max,
 			rangeToStep(farmesh) - 1); // -2 ? TODO: test and tune
 };
 
@@ -394,8 +394,7 @@ void each(const each_param_t &param, const child_t &child)
 	if (distance >= next_child_size) {
 		param.func(tree_result_t{
 				.pos{to_v3bpos(child.pos)},
-				.size{to_bpos(
-						child.size)},
+				.size{to_bpos(child.size)},
 				.step{rangeToStep(child.size)},
 		});
 		return;
@@ -453,11 +452,12 @@ void each(const each_param_t &param, const child_t &child)
 }
 
 void runFarAll(const v3bpos_t &player_block_pos, uint8_t cell_size_pow, int farmesh,
-		uint8_t farmesh_quality_pow, pos_t two_d, bool cell_each,
+		uint8_t farmesh_quality_pow, pos_t two_d, bool cell_each, block_step_t max_step,
 		const std::function<bool(const v3bpos_t &, const bpos_t &, const block_step_t &)>
 				&func)
 {
-	tree_params_t tree_params{.tree_pow{farmesh_to_tree_pow(farmesh)}};
+	const tree_params_t tree_params{.tree_pow{
+			static_cast<block_step_t>(max_step ? max_step : farmesh_to_tree_pow(farmesh))}};
 	const auto start = tree_params_to_child(tree_params, player_block_pos, two_d);
 	const auto func_convert = [&func](const tree_result_t &child) {
 		return func(

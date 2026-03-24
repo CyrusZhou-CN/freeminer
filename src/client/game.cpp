@@ -1119,7 +1119,7 @@ void Game::run()
 
 				if (far_blocks_send_timer <= 0.0f) {
 					client->sendGetBlocks();
-					far_blocks_send_timer = 2;
+					far_blocks_send_timer = 0.2;
 				}
 			}
 
