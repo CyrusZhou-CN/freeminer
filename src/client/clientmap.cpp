@@ -1961,7 +1961,7 @@ void ClientMap::renderMapShadows(video::IVideoDriver *driver,
 
 #if FARMESH_SHADOWS
 		if (!mapBlockMesh) {
-			mapBlockMesh = block->getFarMesh(getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_pos), block_pos ));
+			mapBlockMesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_pos), block_pos ));
 		}
 #endif
 
@@ -2177,7 +2177,7 @@ void ClientMap::updateTransparentMeshBuffers()
 
 #if FARMESH_SHADOWS
 		if (!blockmesh) {
-			blockmesh = block->getFarMesh(getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_pos), block->getPos()));
+			blockmesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_pos), block->getPos()));
 		}
 #endif
 
