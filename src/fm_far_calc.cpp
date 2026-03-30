@@ -77,7 +77,13 @@ block_step_t rangeToStep(const int range)
 {
 	const unsigned int r = static_cast<unsigned int>(range);
 	return r ? static_cast<int>(std::bit_width(r) - 1) : 0;
-};
+}
+
+block_step_t settingToStep(const int range)
+{
+	// really 4 ?
+	return rangeToStep(range / 4);
+}
 
 block_step_t getFarStepBad(const MapDrawControl &draw_control,
 		const v3bpos_t &playerblockpos, const v3bpos_t &blockpos)
@@ -457,14 +463,14 @@ void runFarAll(const v3bpos_t &player_block_pos, uint8_t cell_size_pow, int farm
 				&func)
 {
 	const tree_params_t tree_params{.tree_pow{
-			static_cast<block_step_t>(max_step ? max_step : farmesh_to_tree_pow(farmesh))}};
+			static_cast<block_step_t>(max_step ?: farmesh_to_tree_pow(farmesh))}};
 	const auto start = tree_params_to_child(tree_params, player_block_pos, two_d);
 	const auto func_convert = [&func](const tree_result_t &child) {
 		return func(
 				v3bpos_t{child.pos.X, child.pos.Y, child.pos.Z}, child.size, child.step);
 	};
 
-	// DUMP(start.pos, start.size, tree_align);
+	//DUMP(start.pos, start.size, (int)tree_params.tree_align, max_step);
 	each(
 			{
 					.player_pos{

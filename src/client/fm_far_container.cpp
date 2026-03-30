@@ -24,7 +24,7 @@ std::pair<const MapNode, bool> FarContainer::getNodeRefAndVisible(const v3pos_t 
 {
 	const auto block_pos = getNodeBlockPos(pos);
 	auto &client_map = m_client->getEnv().getClientMap();
-	const auto player_block_pos = getNodeBlockPos(client_map.far_blocks_last_cam_pos);
+	const auto player_block_pos = getNodeBlockPos(client_map.far_cam_pos_mesh);
 	const auto &control = client_map.getControl();
 
 	const auto tree_result =

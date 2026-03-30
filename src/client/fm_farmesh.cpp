@@ -54,7 +54,7 @@ const v3opos_t g_6dirso[6] = {
 		v3opos_t(0, 1, 0),	// top
 };
 
-void FarMesh::makeFarBlock(
+bool FarMesh::makeFarBlock(
 		const v3bpos_t &blockpos, block_step_t step, const bool low_priority)
 {
 	g_profiler->add("Client: Farmesh make", 1);
@@ -62,10 +62,14 @@ void FarMesh::makeFarBlock(
 	auto &client_map = m_client->getEnv().getClientMap();
 	//const auto &draw_control = client_map.getControl();
 	const auto &draw_control = *m_control;
-	const auto blockpos_actual = blockpos;
+	const auto &blockpos_actual = blockpos;
 	auto &far_blocks = //near ? m_client->getEnv().getClientMap().m_far_near_blocks :
 			client_map.m_far_blocks;
+
+	const auto far_iteration_use = client_map.far_iteration_grid;
+
 	MapBlockPtr block;
+#if 0
 	{
 		const auto lock = far_blocks.lock_unique_rec();
 		if (const auto &it = far_blocks.find(blockpos_actual); it != far_blocks.end()) {
@@ -77,19 +81,20 @@ void FarMesh::makeFarBlock(
 			// }
 		}
 	}
-
+#endif
 	{
 		auto &far_blocks_storage_step = client_map.far_blocks_storage[step];
 
 		const auto lock = far_blocks_storage_step.lock_unique_rec();
 
-		if (!block) {
+		//if (!block)
+		{
 			if (const auto it = far_blocks_storage_step.find(blockpos_actual);
 					it != far_blocks_storage_step.end() && it->second.block) {
 				block = it->second.block;
 				it->second.far_last_used = m_client->m_uptime;
 				{
-					far_blocks.insert_or_assign(blockpos_actual, block);
+					//far_blocks.insert_or_assign(blockpos_actual, block);
 				}
 			}
 		}
@@ -97,15 +102,19 @@ void FarMesh::makeFarBlock(
 			block = client_map.createBlankBlockNoInsert(blockpos_actual);
 			block->far_step = step;
 			block->far_status = MapBlock::far_status_e::s1_created;
-			collect_reset_timestamp = block->far_make_mesh_timestamp =
-					m_client->m_uptime + wait_server_far_block + step;
+			collect_reset_timestamp =
+					m_client->m_uptime + (farmesh_wait_server ?: 1) * step;
+			block->far_make_mesh_timestamp =
+					farmesh_wait_server ? collect_reset_timestamp : 0;
+
 			far_blocks_storage_step.insert_or_assign(
 					blockpos_actual, Map::BlockUsed{block, (int32_t)m_client->m_uptime});
-			far_blocks.insert_or_assign(blockpos_actual, block);
+			//far_blocks.insert_or_assign(blockpos_actual, block);
 		}
+			far_blocks.insert_or_assign(blockpos_actual, block);
 	}
 
-	block->far_iteration = far_iteration_pos;
+	block->far_iteration = far_iteration_use;
 
 	if (block->far_status < MapBlock::far_status_e::s2_requested) {
 		for (pos_t x = 0; x < 1 << draw_control.cell_size_pow; ++x) {
@@ -113,7 +122,7 @@ void FarMesh::makeFarBlock(
 				for (pos_t z = 0; z < 1 << draw_control.cell_size_pow; ++z) {
 					client_map.m_far_blocks_ask.emplace(
 							blockpos_actual + v3bpos_t{x, y, z} * (1 << step),
-							std::make_pair(step, far_iteration_pos));
+							std::make_pair(step, far_iteration_use));
 				}
 			}
 		}
@@ -124,9 +133,11 @@ void FarMesh::makeFarBlock(
 	if ((block->far_status >= MapBlock::far_status_e::s2_requested &&
 				block->far_status <= MapBlock::far_status_e::s4_mesh_enqueued &&
 				m_client->m_uptime >= block->far_make_mesh_timestamp)) {
-		enqueueFarMeshForBlock(
+		const auto size = 1 << (step + draw_control.cell_size_pow);
+		return enqueueFarMeshForBlock(
 				blockpos_actual, step, block, m_client->m_uptime, low_priority);
 	}
+	return false;
 }
 
 void FarMesh::makeFarBlocks(const v3bpos_t &blockpos, const block_step_t step)
@@ -246,6 +257,7 @@ static const std::string FarMesh_settings[] = {
 		"client_mesh_chunk",   // ClientMap
 		"farmesh_flat",		   // Farmesh
 		"farmesh_ray",		   // Farmesh
+		"farmesh_wait_server"  // Farmesh
 };
 
 void FarMesh::onSettingChanged(const std::string &name)
@@ -253,9 +265,10 @@ void FarMesh::onSettingChanged(const std::string &name)
 	restart();
 	if (name == "farmesh_flat") {
 		g_settings->getBoolNoEx("farmesh_flat", farmesh_flat);
-
 	} else if (name == "farmesh_ray") {
 		g_settings->getBoolNoEx("farmesh_ray", farmesh_ray);
+	} else if (name == "farmesh_wait_server") {
+		g_settings->getU16NoEx("farmesh_wait_server", farmesh_wait_server);
 	}
 
 	m_client->getEnv().getClientMap().getControl().onSettingChanged(name);
@@ -300,6 +313,7 @@ FarMesh::FarMesh(Client *client, Server *server) :
 
 	g_settings->getBoolNoEx("farmesh_flat", farmesh_flat);
 	g_settings->getBoolNoEx("farmesh_ray", farmesh_ray);
+	g_settings->getU16NoEx("farmesh_wait_server", farmesh_wait_server);
 
 	//for (size_t i = 0; i < process_order.size(); ++i)
 	//	process_order[i] = i;
@@ -339,6 +353,7 @@ void FarMesh::processFarmeshQueue()
 									});
 
 							it = one_step.erase(it);
+							--farmesh_make_queue_size;
 							//++processed_in_step;
 							++processed;
 							++farmesh_make_queue_processed;
@@ -360,6 +375,8 @@ void FarMesh::processFarmeshQueue()
 		} else {
 			if (farmesh_make_queue_processed) {
 				farmesh_make_queue_complete = true;
+			} else {
+				++farmesh_make_queue_processed;
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
@@ -386,12 +403,14 @@ auto align_shift(auto pos, const auto amount)
 int FarMesh::go_container(bool only_received, const block_step_t step_limit)
 {
 	const auto &draw_control = *m_control;
-	const auto player_block_pos = getNodeBlockPos(m_camera_pos_aligned);
+	const auto player_block_pos =
+			getNodeBlockPos(m_client->getEnv().getClientMap().far_cam_pos_grid);
 
+	size_t blocks_enqueued = 0;
 	farmesh::runFarAll(player_block_pos, draw_control.cell_size_pow, draw_control.farmesh,
 			draw_control.farmesh_quality_pow, 0, false, 0,
-			[this, &step_limit, &only_received](const v3bpos_t &bpos, const bpos_t &size,
-					const block_step_t &step) -> bool {
+			[this, &step_limit, &only_received, &blocks_enqueued](const v3bpos_t &bpos,
+					const bpos_t &size, const block_step_t &step) -> bool {
 				if (step >= FARMESH_STEP_MAX) {
 					return false;
 				}
@@ -408,15 +427,15 @@ int FarMesh::go_container(bool only_received, const block_step_t step_limit)
 					const auto contains = it != step_blocks.end() && it->second.block;
 
 					if (contains) {
-						makeFarBlock(bpos, step);
+						blocks_enqueued += makeFarBlock(bpos, step);
 					}
 				} else {
-					makeFarBlock(bpos, step);
+					blocks_enqueued += makeFarBlock(bpos, step);
 				}
 
 				return false;
 			});
-	return 1;
+	return blocks_enqueued;
 }
 
 int FarMesh::go_flat()
@@ -426,20 +445,24 @@ int FarMesh::go_flat()
 	auto &dcache = direction_caches[0][0];
 	auto &last_step = dcache.step_num;
 	// todo: slowly increase range here
-	const auto max_step = farmesh::rangeToStep(draw_control.farmesh / 3);
-	if (last_step > max_step) {
-		return 0;
-	}
-	last_step += 2;
-	DUMP("bef", last_step, max_step, draw_control.farmesh);
-	const auto player_block_pos = getNodeBlockPos(m_camera_pos_aligned);
+	const auto max_step = farmesh::settingToStep(draw_control.farmesh);
+	for (; last_step < max_step;) {
+		if (!farmesh_make_queue_complete) {
+			return last_step ?: 1;
+		}
+		farmesh_make_queue_complete = false;
+		++last_step;
+		const auto player_block_pos =
+				getNodeBlockPos(m_client->getEnv().getClientMap().far_cam_pos_grid);
 
 	// todo: maybe save blocks while cam pos not changed
 	std::array<std::unordered_map<v3bpos_t, bool>, FARMESH_STEP_MAX> blocks;
-	farmesh::runFarAll(player_block_pos, draw_control.cell_size_pow, draw_control.farmesh,
-			draw_control.farmesh_quality_pow, 1, false, last_step + 1,
-			[this, &draw_control, &blocks, &player_block_pos](const v3bpos_t &bpos,
-					const bpos_t &size, const block_step_t &step) -> bool {
+		farmesh::runFarAll(player_block_pos, draw_control.cell_size_pow,
+				draw_control.farmesh, draw_control.farmesh_quality_pow, 1, false,
+				last_step,
+				[this, &draw_control, &blocks, &player_block_pos, &max_step](
+						const v3bpos_t &bpos, const bpos_t &size,
+						const block_step_t &step) -> bool {
 #if 0 // test only
 				{
 					v3bpos_t bpos_new{bpos.X, 0, bpos.Z};
@@ -470,9 +493,9 @@ int FarMesh::go_flat()
 					 }) {
 					v3bpos_t bpos_new{static_cast<bpos_t>(bpos.X + add.X), add.Y,
 							static_cast<bpos_t>(bpos.Z + add.Z)};
-					bpos_new.Y +=
-							mg->getGroundLevelAtPoint(v2pos_t{
-									static_cast<pos_t>((bpos_new.X << MAP_BLOCKP) - 1),
+						bpos_new.Y += mg->getGroundLevelAtPoint(v2pos_t{
+											  static_cast<pos_t>(
+													  (bpos_new.X << MAP_BLOCKP) - 1),
 									static_cast<pos_t>(
 											(bpos_new.Z << MAP_BLOCKP) - 1)}) >>
 							MAP_BLOCKP;
@@ -491,18 +514,19 @@ int FarMesh::go_flat()
 				}
 				return false;
 			});
-
-	for (auto step = 0; step < blocks.size(); ++step) {
-		if (!step) {
-			continue;
-		}
+		size_t blocks_enqueued = 0;
+		size_t blocks_collected = 0;
+		for (size_t step = 1; step < blocks.size(); ++step) {
 		for (const auto &[bpos, low_priority] : blocks[step]) {
-			makeFarBlock(bpos, step, low_priority);
+				++blocks_collected;
+				blocks_enqueued += makeFarBlock(bpos, step, low_priority);
 		}
 	}
-	DUMP("aft", last_step);
-
+		if (blocks_enqueued) {
 	return last_step;
+		}
+	}
+	return 0; //last_step != max_step;
 }
 
 int FarMesh::go_direction(const size_t dir_n)
@@ -521,6 +545,8 @@ int FarMesh::go_direction(const size_t dir_n)
 	const auto dir = g_6dirso[dir_n];
 	const auto grid_size_xy = grid_size_x * grid_size_y;
 
+	const auto &far_cam_pos_grid = m_client->getEnv().getClientMap().far_cam_pos_grid;
+	const auto camera_pos = intToFloat(far_cam_pos_grid, BS);
 	int processed = 0;
 	for (uint16_t i = 0; i < grid_size_xy; ++i) {
 		auto &ray_cache = cache[i];
@@ -533,7 +559,7 @@ int FarMesh::go_direction(const size_t dir_n)
 		const uint16_t x = i % grid_size_x;
 
 		auto dir_first = dir * distance_min / 2;
-		const auto pos_center = dir_first + m_camera_pos;
+		const auto pos_center = dir_first + camera_pos;
 
 		if (!dir.X)
 			dir_first.X += distance_min / grid_size_x * (x - grid_size_x / 2);
@@ -553,7 +579,7 @@ int FarMesh::go_direction(const size_t dir_n)
 #endif
 			//const auto dstep = ray_cache.step_num; // + 1;
 			auto block_step_prev = farmesh::getFarStepBad(draw_control,
-					getNodeBlockPos(m_camera_pos_aligned),
+					getNodeBlockPos(far_cam_pos_grid),
 					getNodeBlockPos(floatToInt(pos_last, BS)));
 
 			const auto step_width_shift = (block_step_prev - block_step_reduce);
@@ -566,7 +592,7 @@ int FarMesh::go_direction(const size_t dir_n)
 			//break;
 			//}
 
-			const auto pos = dir_l * depth * BS + m_camera_pos;
+			const auto pos = dir_l * depth * BS + camera_pos;
 			pos_last = pos;
 
 #if !USE_POS32
@@ -592,7 +618,7 @@ int FarMesh::go_direction(const size_t dir_n)
 			const auto pos_int = align_shift(
 					floatToInt(pos, BS), step_aligned_pow > 0 ? step_aligned_pow : 0);
 
-			if (radius_box(pos_int, m_camera_pos_aligned) > last_distance_max) {
+			if (radius_box(pos_int, far_cam_pos_grid) > last_distance_max) {
 				break;
 			}
 
@@ -686,7 +712,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 		want_reset = false;
 
 		far_iteration_pos = client_map.far_iteration_grid =
-				client_map.far_iteration_mesh = client_map.far_iteration_use =
+				client_map.far_iteration_mesh = client_map.far_iteration_draw =
 						client_map.far_iteration_clean = 0;
 	}
 
@@ -698,7 +724,8 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 			(std::min<unsigned int>(render_range, 1.2 * m_client->fog_range / BS) >> 7)
 			<< 7;
 
-	const auto far_old = far_iteration_pos_time + 5 < m_client->m_uptime;
+	const auto far_old = !m_control->farmesh_stable &&
+						 far_iteration_pos_time + 10 < m_client->m_uptime;
 	const auto far_fast =
 			!m_control->farmesh_stable &&
 			// far_old &&
@@ -707,7 +734,29 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 					m_speed > 200 * BS ||
 					m_camera_pos_aligned.getDistanceFrom(camera_pos_aligned_int) > 1000);
 
-	const auto set_new_cam_pos = [&](bool grid_restart = true) {
+	const auto set_new_mesh_pos = [&]() {
+			for (auto &stepit : farmesh_make_queue) {
+				stepit.clear();
+			}
+		farmesh_make_queue_size = 0;
+			farmesh_make_queue_processed = 0;
+			farmesh_make_queue_complete = false;
+			auto &client_map = m_client->getEnv().getClientMap();
+			client_map.m_far_blocks_ask.clear();
+			client_map.far_iteration_mesh = client_map.far_iteration_grid;
+		client_map.far_cam_pos_mesh = client_map.far_cam_pos_grid;
+	};
+	bool grid_finished{};
+	const auto set_new_grid_pos = [&]() {
+		client_map.far_iteration_grid = far_iteration_pos;
+		client_map.far_cam_pos_grid = m_camera_pos_aligned;
+		collect_reset_timestamp = -1;
+		plane_processed.fill({});
+		direction_caches.fill({});
+		grid_finished = false;
+	};
+
+	const auto set_new_cam_pos = [&]() {
 		if (m_camera_pos_aligned == camera_pos_aligned_int) {
 			return false;
 		}
@@ -716,54 +765,24 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 		far_iteration_pos_time = m_client->m_uptime;
 
 		m_camera_pos_aligned = camera_pos_aligned_int;
-		m_camera_pos = intToFloat(m_camera_pos_aligned, BS);
-		complete_set = false;
-		if (grid_restart) {
-			plane_processed.fill({});
-			direction_caches.fill({});
-			direction_caches_pos = m_camera_pos_aligned;
-			for (auto &stepit : farmesh_make_queue) {
-				stepit.clear();
-			}
-			farmesh_make_queue_processed = 0;
-			farmesh_make_queue_complete = false;
-			auto &client_map = m_client->getEnv().getClientMap();
-			client_map.m_far_blocks_ask.clear();
-			client_map.far_iteration_mesh = client_map.far_iteration_grid;
-		}
 		return true;
 	};
 
 	if (!far_iteration_pos) {
 		++far_iteration_pos;
-		set_new_cam_pos(true);
+		set_new_cam_pos();
+		set_new_grid_pos();
+		set_new_mesh_pos();
 	}
-
-	if (0 && complete_set) {
-		if (last_distance_max < distance_max) {
-			plane_processed.fill({});
-			last_distance_max = distance_max; // * 1.1;
-		}
-
-		if (m_client->m_new_farmeshes) {
-			m_client->m_new_farmeshes = 0;
-			plane_processed.fill({});
-		}
-		if (m_client->m_uptime > collect_reset_timestamp) {
-			collect_reset_timestamp = -1;
-			plane_processed.fill({});
-			direction_caches.fill({});
-		}
+	const auto mesh_complete_set =
+			client_map.far_iteration_draw == client_map.far_iteration_mesh;
+	if (mesh_complete_set && m_client->m_uptime > collect_reset_timestamp) {
+		set_new_grid_pos();
 	}
 
 	{
 		thread_local static const s16 farmesh_all_changed =
 				g_settings->getU32("farmesh_all_changed");
-
-		if (grid_finished && client_map.far_blocks_last_cam_pos != m_camera_pos_aligned) {
-			client_map.far_iteration_grid = far_iteration_pos;
-			client_map.far_blocks_last_cam_pos = m_camera_pos_aligned;
-		}
 
 		uint8_t planes_processed{};
 		if (farmesh_flat && mg->surface_2d()) {
@@ -772,7 +791,9 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 				++planes_processed;
 				async_direction[0].step([this]() {
 					plane_processed[0].processed = go_flat();
-					go_container(true, farmesh::rangeToStep(farmesh_all_changed) / 3);
+					if (!plane_processed[0].processed) {
+						go_container(true, farmesh::settingToStep(farmesh_all_changed));
+					}
 				});
 			} else {
 				grid_finished = true;
@@ -780,7 +801,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 		} else if (farmesh_ray) {
 			// Try find surface via raytrace
 
-			if (complete_set) {
+			if (mesh_complete_set) {
 				if (last_distance_max < distance_max) {
 					plane_processed.fill({});
 					last_distance_max = distance_max; // * 1.1;
@@ -819,22 +840,22 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 				grid_finished = true;
 			}
 		}
-
-		if (!farmesh_make_queue_complete) {
-			complete_set = false;
-		}
+		grid_finished = !planes_processed;
 
 		bool cam_pos_updated{};
-		const auto grid_restart = far_old || complete_set;
-		if (far_old || complete_set || farmesh_make_queue_complete) {
-			cam_pos_updated = set_new_cam_pos(grid_restart);
-		}
-		if (!complete_set && farmesh_make_queue_complete) {
-			client_map.far_iteration_use = client_map.far_iteration_mesh;
-			if (farmesh_make_queue_complete) {
-				client_map.far_iteration_clean = client_map.far_iteration_mesh; // - 1;
+		if (far_old || (mesh_complete_set && farmesh_make_queue_complete)) {
+			cam_pos_updated = set_new_cam_pos();
+			if (cam_pos_updated) {
+				set_new_grid_pos();
+				set_new_mesh_pos();
 			}
-			complete_set = true;
+		}
+		if (grid_finished &&
+				client_map.far_iteration_draw != client_map.far_iteration_mesh &&
+				farmesh_make_queue_complete) {
+			client_map.far_iteration_draw = client_map.far_iteration_mesh;
+			client_map.far_cam_pos_draw = client_map.far_cam_pos_mesh;
+			client_map.far_iteration_clean = client_map.far_iteration_mesh; // - 1;
 		}
 		/*
 			{
@@ -854,7 +875,7 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 */
 
 #if FARMESH_CLEAN
-		if (complete_set) {
+		if (mesh_complete_set) {
 			const auto now = m_client->m_uptime.load(); //porting::getTimeMs();
 			if (now > async_cleaner_next) {
 				thread_local static const auto client_unload_unused_data_timeout =
@@ -896,18 +917,25 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 		}
 #endif
 
-		return grid_finished;
+		return grid_finished && mesh_complete_set;
 	}
 }
 
-void FarMesh::enqueueFarMeshForBlock(const v3bpos_t &blockpos, const block_step_t step,
+bool FarMesh::enqueueFarMeshForBlock(const v3bpos_t &blockpos, const block_step_t step,
 		const MapBlockPtr &block, const double timestamp, const bool low_priority)
 {
-	farmesh_make_queue_complete = false;
+	if (low_priority && farmesh_make_queue[step].contains(blockpos)) {
+		return false;
+	}
+
 	block->far_status = MapBlock::far_status_e::s4_mesh_enqueued;
 
+	farmesh_make_queue_complete = false;
+	const auto &[_, inserted] =
 	farmesh_make_queue[step + FARMESH_STEP_MAX * low_priority].insert_or_assign(
 			blockpos, BlockTodo{block, timestamp});
+	farmesh_make_queue_size += inserted;
+	return true;
 }
 
 void FarMesh::restart()
@@ -917,8 +945,11 @@ void FarMesh::restart()
 	for (auto &a : async_direction) {
 		a.wait();
 	}
+
 	for (auto &stepit : farmesh_make_queue) {
 		stepit.clear();
 	}
+	farmesh_make_queue_size = 0;
+	farmesh_make_queue_complete = 1;
 	m_client->mesh_thread_pool.wait_until_empty();
 }

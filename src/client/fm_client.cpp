@@ -182,6 +182,7 @@ void Client::createFarMesh(MapBlockPtr &block)
 	//if (bool cmp = false; block->creating_far_mesh.compare_exchange_weak(cmp, true))
 	if (1) {
 		g_profiler->add("Client: Farmesh mesh", 1);
+		TimeTaker timer("Client: Farmesh mesh [ms]");
 		block->far_make_mesh_timestamp = -1;
 		block->far_status = MapBlock::far_status_e::s5_mesh_start;
 
@@ -196,9 +197,11 @@ void Client::createFarMesh(MapBlockPtr &block)
 		mesh_make_data.m_blockpos = blockpos;
 		const auto mesh = std::make_shared<MapBlockMesh>(m_client, &mesh_make_data);
 		block->setFarMesh(mesh, step);
+		block->far_step_draw = block->far_step;
 		block->creating_far_mesh = false;
 		block->far_status = MapBlock::far_status_e::s6_mesh_complete;
 		++m_client->m_new_meshes;
+		g_profiler->avg("Client: Farmesh mesh [ms]", timer.stop(true));
 	}
 }
 
@@ -273,9 +276,9 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 		}
 		if (!block) {
 			block = m_env.getMap().createBlankBlockNoInsert(bpos);
-		}
 		far_blocks_storage.insert_or_assign(
 				bpos, Map::BlockUsed{block, (int32_t)m_uptime});
+		}
 	} else {
 		block = m_env.getMap().getBlock(bpos);
 		if (!block) {
@@ -351,21 +354,26 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 			if (!settings_farmesh_server || !settings_farmesh || !farmesh) {
 				return;
 			}
-
-			block->far_make_mesh_timestamp = m_uptime + 1 + step / 4;
+			constexpr auto update_farmesh = true;
+			const auto far_make_mesh_timestamp = m_uptime + 1 + step / 4;
+			if (block->far_make_mesh_timestamp <= 0 ||
+					(update_farmesh &&
+							block->far_make_mesh_timestamp < far_make_mesh_timestamp)) {
+				block->far_make_mesh_timestamp = far_make_mesh_timestamp;
+			}
 			block->far_status = MapBlock::far_status_e::s3_recieved;
 
 			++m_new_farmeshes;
 
-			[this, block, step]() mutable {
+			[this, block, step, &far_make_mesh_timestamp]() mutable {
 				auto &client_map = getEnv().getClientMap();
 				const auto &control = client_map.getControl();
 				auto blockpos = block->getPos();
 				//const auto blockpos_original = blockpos;
 				//const auto step_original = step;
 
-				const auto tree_result = farmesh::getFarParams(control,
-						getNodeBlockPos(client_map.far_blocks_last_cam_pos), blockpos);
+				const auto tree_result = farmesh::getFarParams(
+						control, getNodeBlockPos(client_map.far_cam_pos_mesh), blockpos);
 				if (!tree_result)
 					return;
 				auto &far_blocks = client_map.m_far_blocks;
@@ -378,7 +386,11 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 					if (const auto &it = far_blocks.find(blockpos);
 							it != far_blocks.end() && it->second->far_step == step) {
 						block = it->second;
-						block->far_make_mesh_timestamp = m_uptime + 1 + step / 4;
+						if (block->far_make_mesh_timestamp <= 0 ||
+								(update_farmesh && block->far_make_mesh_timestamp <
+														   far_make_mesh_timestamp)) {
+							block->far_make_mesh_timestamp = far_make_mesh_timestamp;
+						}
 						block->far_status = MapBlock::far_status_e::s3_recieved;
 
 					} else {
@@ -386,13 +398,13 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 					}
 				}
 
-				if (other_draw_block) {
-					return;
-				}
+				// if (other_draw_block) {
+				// 	return;
+				// }
 
-				farmesh->enqueueFarMeshForBlock(
-						blockpos, step, block, m_uptime, other_draw_block);
+				// farmesh->enqueueFarMeshForBlock(blockpos, step, block, m_uptime, other_draw_block);
 
+#if 0
 				if (0) {
 					const auto lock = far_blocks.lock_unique_rec();
 					if (const auto &it = far_blocks.find(blockpos);
@@ -406,6 +418,7 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 						far_blocks.at(blockpos) = block;
 					}
 				}
+#endif
 			}();
 		}
 	});
