@@ -501,8 +501,7 @@ void ClientMap::updateDrawList(float dtime, unsigned int max_cycle_ms)
 						m_control, getNodeBlockPos(cam_pos_nodes), block_coord, speedf);
 				auto mesh = block ? block->getLodMesh(mesh_step, true) : nullptr;
 				if (!mesh && block) {
-					int fmesh_step = farmesh::getFarStep(
-							m_control, getNodeBlockPos(far_blocks_last_cam_pos), block_coord);
+					if(const auto &fmesh_step = block->far_step_draw ?: block->far_step)
 					mesh = block->getFarMesh(fmesh_step);
 				}
 				if (!mesh)
@@ -639,8 +638,7 @@ void ClientMap::updateDrawList(float dtime, unsigned int max_cycle_ms)
 					farmesh::getLodStep(m_control, getNodeBlockPos(cam_pos_nodes), block_coord, speedf);
 			auto mesh = block ? block->getLodMesh(mesh_step, true) : nullptr;
 			if (!mesh && block) {
-				int fmesh_step = farmesh::getFarStep(
-						m_control, getNodeBlockPos(far_blocks_last_cam_pos), block_coord);
+				if(const auto &fmesh_step = block->far_step_draw ?: block->far_step)
 				mesh = block->getFarMesh(fmesh_step);
 			}
 			//if (!mesh)
@@ -1181,7 +1179,7 @@ void ClientMap::updateDrawListFm(float dtime, unsigned int max_cycle_ms)
 
 			{
 				blocks_skip_farmesh.emplace(farmesh::getFarActualBlockPos(
-						m_control, getNodeBlockPos(far_blocks_last_cam_pos), bp ));
+						m_control, getNodeBlockPos(far_cam_pos_draw), bp ));
 			}
 
 			if (mesh) {
@@ -1219,7 +1217,7 @@ void ClientMap::updateDrawListFm(float dtime, unsigned int max_cycle_ms)
 			if (far_iteration_clean && block->far_iteration < far_iteration_clean) {
 				m_far_blocks_delete.emplace_back(block);
 				it = m_far_blocks.erase(it);
-			} else if (block->far_iteration >= far_iteration_use) {
+			} else if (block->far_iteration >= far_iteration_draw) {
 				if (!blocks_skip_farmesh.contains(it->first)) {
 					drawlist.emplace(it->first, block);
 					++farblocks_drawn;
@@ -1520,12 +1518,10 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 		// If the mesh of the block happened to get deleted, ignore it
 
 		if (!block_mesh) {
-			int &fmesh_step = mesh_step;
-
-			fmesh_step = farmesh::getFarStep(
-					m_control, getNodeBlockPos(far_blocks_last_cam_pos), block->getPos());
+			if (const auto &fmesh_step = block->far_step_draw ?: block->far_step) {
 			block_mesh = block->getFarMesh(fmesh_step);
 			is_far = true;
+			}
 		}
 		
 		if (!block_mesh || block_mesh->isEmpty())
@@ -1960,7 +1956,7 @@ void ClientMap::renderMapShadows(video::IVideoDriver *driver,
 
 #if FARMESH_SHADOWS
 		if (!mapBlockMesh) {
-			mapBlockMesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_pos), block_pos ));
+			mapBlockMesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_draw), block_pos ));
 		}
 #endif
 
@@ -2176,7 +2172,7 @@ void ClientMap::updateTransparentMeshBuffers()
 
 #if FARMESH_SHADOWS
 		if (!blockmesh) {
-			blockmesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_pos), block->getPos()));
+			blockmesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_draw), block->getPos()));
 		}
 #endif
 

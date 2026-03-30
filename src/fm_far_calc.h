@@ -82,4 +82,6 @@ void runFarAll(const v3bpos_t &player_block_pos, uint8_t cell_size_pow, int farm
 				&func);
 
 block_step_t rangeToStep(const int range);
+block_step_t settingToStep(const int range);
+
 }
