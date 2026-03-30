@@ -309,7 +309,7 @@ our $options = {
         '--world'         => $script_path . 'world_fall1',
         mg_name           => 'math',
         mg_math           => {"generator" => "menger_sponge"},
-        static_spawnpoint => '(-70,20020,-190)',
+        static_spawnpoint => '(10,20020,10)',
         mg_flags          => '',                                                                                          # "trees",
     },
     fall3 => {
@@ -504,6 +504,7 @@ $commands = {
     },
     set_bot         => {'----bot' => 1, '----bot_random' => 1,},
     run_bot         => ['set_bot', 'set_client', 'run_single'],
+    run             => ['set_client', 'run_single'],
     valgrind => sub {
         $g->{keep_config} = 1;
         $config->{runner} = $config->{runner} . " valgrind @_";
