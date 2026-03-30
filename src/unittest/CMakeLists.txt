@@ -2,6 +2,7 @@ file(GLOB unittest_HDRS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
 set (UNITTEST_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/fm_test_lock.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/test_fm_far_calc.cpp
 
 	${unittest_HDRS}
 	${CMAKE_CURRENT_SOURCE_DIR}/test.cpp

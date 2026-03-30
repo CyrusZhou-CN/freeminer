@@ -243,7 +243,7 @@ public:
 	{
 		ServerMap *map = &env->getServerMap();
 		const auto *ndef = env->getGameDef()->ndef();
-		float heat = map->updateBlockHeat(env, pos);
+		const auto heat = map->updateBlockHeat(env, pos);
 
 		// dont grow to sides if can grow up
 		bool top_is_not_tree{false};
@@ -300,12 +300,31 @@ public:
 			return D_SELF;
 		};
 
+		const auto direction_to_facedir = [](const auto &direction) -> int {
+			switch (direction) {
+			case D_TOP:
+				return 0; // Upward direction
+			case D_BOTTOM:
+				return 16; // Downward direction
+			case D_FRONT:
+				return 7; // Front direction
+			case D_BACK:
+				return 9; // Back direction
+			case D_LEFT:
+				return 12; // Left direction
+			case D_RIGHT:
+				return 18; // Right direction
+			default:
+				return 0; // Default to upward
+			}
+		};
+
 		Neighbor nbh[7]{};
 		{
-			size_t i = 0;
+			size_t look_direction = 0;
 			for (const auto &dir : leaves_look_dirs) {
-				auto &nb = nbh[i];
-				const bool is_self = i == D_SELF;
+				auto &nb = nbh[look_direction];
+				const bool is_self = look_direction == D_SELF;
 				nb.pos = pos + dir;
 
 				nb.node = is_self ? n : map->getNodeTry(nb.pos);
@@ -318,10 +337,10 @@ public:
 
 				nb.cf = (ContentFeatures *)&ndef->get(nb.content);
 				nb.light = getLight(ndef, nb.node);
-				nb.top = i == D_TOP;
-				nb.bottom = i == D_BOTTOM;
+				nb.top = look_direction == D_TOP;
+				nb.bottom = look_direction == D_BOTTOM;
 				nb.side = !nb.bottom && !nb.top;
-				nb.self = i == D_SELF;
+				nb.self = look_direction == D_SELF;
 				nb.is_tree = is_self || nbh[D_SELF].content == nb.content;
 
 				if (!nb.is_tree) {
@@ -378,15 +397,15 @@ public:
 							((self_facedir >= 20) && (self_facedir <= 23));
 				} else if (nb.top || nb.bottom) {
 					nb.allow_grow_by_rotation = nbh[D_SELF].allow_grow_by_rotation;
-				} else if (i == D_FRONT || i == D_BACK) {
+				} else if (look_direction == D_FRONT || look_direction == D_BACK) {
 					// Can self grow this sides?
 					nb.allow_grow_by_rotation = self_facedir == 7 || self_facedir == 9;
-				} else if (i == D_LEFT || i == D_RIGHT) {
+				} else if (look_direction == D_LEFT || look_direction == D_RIGHT) {
 					nb.allow_grow_by_rotation = self_facedir == 18 || self_facedir == 12;
 				}
 
 				// if (grow_debug) DUMP(i, nb.allow_grow_by_rotation, nb.facedir, self_facedir);
-				++i;
+				++look_direction;
 			}
 		}
 		auto &self = nbh[D_SELF];
@@ -642,6 +661,7 @@ public:
 				map->setNode(nb.pos, nb.node);
 				return true;
 			};
+
 			if (water_pump()) {
 				break;
 			}
