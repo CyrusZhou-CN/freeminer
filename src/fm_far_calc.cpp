@@ -207,7 +207,7 @@ std::optional<tree_result_t> find(
 		}
 	}
 
-	if (child.size <= (1 << (param.cell_size_pow))) {
+	if (child.size < (1 << (param.cell_size_pow))) {
 		return make_result(child);
 	}
 

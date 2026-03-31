@@ -205,6 +205,7 @@ void TestFmFarCalc::testRunFarAllVerification()
 		// Test with different configurations
 		draw_control.cell_size_pow = dc_csp;  // cell size = 1
 		draw_control.cell_size = 1 << dc_csp; // cell size = 1
+		draw_control.farmesh_quality_pow = draw_control.cell_size_pow;
 		for (const auto &dc_fm : {128, 1000, 10000}) {
 			draw_control.farmesh = dc_fm;
 			for (const auto &cell_each : {true, false}) {
@@ -231,7 +232,7 @@ void TestFmFarCalc::testRunFarAllVerification()
 								//const auto check_pos = farmesh::getFarActualBlockPos(draw_control, player_pos, block_pos, cell_each);
 								const auto &check_pos = res->pos;
 								DUMP(dc_csp, dc_fm, cell_each, two_d, check_step, step,
-										block_pos, check_pos, player_pos, cell_each);
+										block_pos, check_pos, player_pos);
 								UASSERT(check_step >= 0);
 								UASSERT(check_step <= FARMESH_STEP_MAX);
 
