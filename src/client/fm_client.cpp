@@ -276,8 +276,8 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 		}
 		if (!block) {
 			block = m_env.getMap().createBlankBlockNoInsert(bpos);
-		far_blocks_storage.insert_or_assign(
-				bpos, Map::BlockUsed{block, (int32_t)m_uptime});
+			far_blocks_storage.insert_or_assign(
+					bpos, Map::BlockUsed{block, (int32_t)m_uptime});
 		}
 	} else {
 		block = m_env.getMap().getBlock(bpos);

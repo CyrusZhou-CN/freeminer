@@ -3,6 +3,7 @@
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 
 #include "fm_far_calc.h"
+#include "fm_farmesh.h"
 
 #include "clientmap.h"
 #include "client.h"
@@ -1519,8 +1520,8 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 
 		if (!block_mesh) {
 			if (const auto &fmesh_step = block->far_step_draw ?: block->far_step) {
-			block_mesh = block->getFarMesh(fmesh_step);
-			is_far = true;
+				block_mesh = block->getFarMesh(fmesh_step);
+				is_far = true;
 			}
 		}
 		
@@ -1956,7 +1957,7 @@ void ClientMap::renderMapShadows(video::IVideoDriver *driver,
 
 #if FARMESH_SHADOWS
 		if (!mapBlockMesh) {
-			mapBlockMesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_draw), block_pos ));
+			mapBlockMesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_cam_pos_draw), block_pos ));
 		}
 #endif
 
@@ -2128,7 +2129,7 @@ void ClientMap::updateDrawListShadow(v3f shadow_light_pos, v3f shadow_light_dir,
 			const auto lock = m_far_blocks.lock_shared_rec();
 			for (const auto &[pos, block] : m_far_blocks) {
 				if (far_iteration_clean && block->far_iteration < far_iteration_clean) {
-				} else if (block->far_iteration >= far_iteration_use) {
+				} else if (block->far_iteration >= far_iteration_draw) {
 					if (blocks_skip_farmesh.contains(pos))
 						continue;
 
@@ -2172,7 +2173,7 @@ void ClientMap::updateTransparentMeshBuffers()
 
 #if FARMESH_SHADOWS
 		if (!blockmesh) {
-			blockmesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_blocks_last_cam_draw), block->getPos()));
+			blockmesh = block->getFarMesh(farmesh::getFarStep(m_control, getNodeBlockPos(far_cam_pos_draw), block->getPos()));
 		}
 #endif
 
