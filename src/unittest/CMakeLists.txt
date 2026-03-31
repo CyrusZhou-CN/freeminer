@@ -71,5 +71,3 @@ set (UNITTEST_CLIENT_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/test_mesh_compare.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_keycode.cpp
 	PARENT_SCOPE)
-	${CMAKE_CURRENT_SOURCE_DIR}/test_fm_far_calc.cpp
-	PARENT_SCOPE)
