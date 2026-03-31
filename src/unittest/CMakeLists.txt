@@ -2,7 +2,6 @@ file(GLOB unittest_HDRS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
 set (UNITTEST_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/fm_test_lock.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/test_fm_far_calc.cpp
 
 	${unittest_HDRS}
 	${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
@@ -59,6 +58,8 @@ set (UNITTEST_SRCS
 	PARENT_SCOPE)
 
 set (UNITTEST_CLIENT_SRCS
+	${CMAKE_CURRENT_SOURCE_DIR}/test_fm_far_calc.cpp
+
 	${CMAKE_CURRENT_SOURCE_DIR}/mesh_compare.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_clientactiveobjectmgr.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_content_mapblock.cpp
@@ -69,4 +70,6 @@ set (UNITTEST_CLIENT_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/test_irr_matrix4.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_mesh_compare.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_keycode.cpp
+	PARENT_SCOPE)
+	${CMAKE_CURRENT_SOURCE_DIR}/test_fm_far_calc.cpp
 	PARENT_SCOPE)
