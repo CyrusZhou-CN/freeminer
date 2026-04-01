@@ -510,7 +510,7 @@ void ClientMap::cleanPerodic(uint32_t uptime)
 		{
 			int step = 0;
 			for (auto &ma : block->m_lod_mesh) {
-				if (auto m = ma.load();) {
+				if (auto m = ma.load()) {
 					if (m->last_used + client_unload_unused_data_timeout < uptime) {
 						m.reset();
 					}
