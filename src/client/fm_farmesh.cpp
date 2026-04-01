@@ -136,6 +136,10 @@ bool FarMesh::makeFarBlock(
 		const auto size = 1 << (step + draw_control.cell_size_pow);
 		return enqueueFarMeshForBlock(
 				blockpos_actual, step, block, m_client->m_uptime, low_priority);
+	} else if (m_client->m_uptime >= block->far_make_mesh_timestamp > 0 &&
+		collect_reset_timestamp =
+				std::min(collect_reset_timestamp, block->far_make_mesh_timestamp);
+	} else {
 	}
 	return false;
 }
@@ -800,19 +804,6 @@ uint8_t FarMesh::update(v3opos_t camera_pos,
 			}
 		} else if (farmesh_ray) {
 			// Try find surface via raytrace
-
-			if (mesh_complete_set) {
-				if (last_distance_max < distance_max) {
-					plane_processed.fill({});
-					last_distance_max = distance_max; // * 1.1;
-				}
-
-				if (m_client->m_uptime > collect_reset_timestamp) {
-					collect_reset_timestamp = -1;
-					plane_processed.fill({});
-					direction_caches.fill({});
-				}
-			}
 
 			for (uint8_t i = 0; i < sizeof(g_6dirso) / sizeof(g_6dirso[0]); ++i) {
 #if FARMESH_DEBUG

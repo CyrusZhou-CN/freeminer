@@ -45,29 +45,13 @@ block_step_t getLodStep(const MapDrawControl &draw_control,
 
 		const auto cells = std::max<int>(draw_control.cell_size << 1,
 				draw_control.lodmesh >> draw_control.cell_size_pow);
-		// for (int i = 8; i >= 0; --i) {
-		// 	if (range >= cells + draw_control.lodmesh * pow(2, i))
-		// 		return i;
-		// }
 
-		/*
-		if (range >= cells + draw_control.lodmesh * 64) // cell_size = 4
-			return 8;
-		if (range >= cells + draw_control.lodmesh * 32)
-			return 7;
-		if (range >= cells + draw_control.lodmesh * 16)
-			return 6;
-		if (range >= cells + draw_control.lodmesh * 8)
-			return 5;
-*/
+		for (int i = 8; i >= 1; --i) {
+			if (range >= cells + draw_control.lodmesh * (1 << (i - 1)))
+				return i;
+		}
 
-		if (range >= cells + draw_control.lodmesh * 4)
-			return 4;
-		else if (range >= cells + draw_control.lodmesh * 2)
-			return 3;
-		else if (range >= cells + draw_control.lodmesh)
-			return 2;
-		else if (range >= cells)
+		if (range >= cells)
 			return 1;
 	}
 	return 0;
@@ -200,11 +184,14 @@ std::optional<tree_result_t> find(
 				param.block_pos.Y < child.pos.Y + sz &&
 				param.block_pos.Z >= child.pos.Z &&
 				param.block_pos.Z < child.pos.Z + sz)) {
-		if (depth) {
+		return {};
+		/*
+			if (depth) {
 			return {};
 		} else {
 			return make_result(child);
 		}
+	    */
 	}
 
 	if (child.size < (1 << (param.cell_size_pow))) {

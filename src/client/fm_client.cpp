@@ -180,6 +180,7 @@ void Client::MakeEmerge(const Settings &settings, const MapgenType &mgtype)
 void Client::createFarMesh(MapBlockPtr &block)
 {
 	//if (bool cmp = false; block->creating_far_mesh.compare_exchange_weak(cmp, true))
+	block->creating_far_mesh = true;
 	if (1) {
 		g_profiler->add("Client: Farmesh mesh", 1);
 		TimeTaker timer("Client: Farmesh mesh [ms]");
@@ -354,18 +355,24 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 			if (!settings_farmesh_server || !settings_farmesh || !farmesh) {
 				return;
 			}
-			constexpr auto update_farmesh = true;
-			const auto far_make_mesh_timestamp = m_uptime + 1 + step / 4;
-			if (block->far_make_mesh_timestamp <= 0 ||
-					(update_farmesh &&
-							block->far_make_mesh_timestamp < far_make_mesh_timestamp)) {
-				block->far_make_mesh_timestamp = far_make_mesh_timestamp;
-			}
-			block->far_status = MapBlock::far_status_e::s3_recieved;
+
+			const auto block_status = [this](const MapBlockPtr &block, const auto &step) {
+				constexpr auto update_farmesh = true;
+				const auto far_make_mesh_timestamp = m_uptime + 1 + step / 4;
+				if (block->far_make_mesh_timestamp <= 0 ||
+						block->far_make_mesh_timestamp == -1 ||
+						(update_farmesh && block->far_make_mesh_timestamp <
+												   far_make_mesh_timestamp)) {
+					block->far_make_mesh_timestamp = far_make_mesh_timestamp;
+				}
+				block->far_status = MapBlock::far_status_e::s3_recieved;
+			};
+
+			block_status(block, step);
 
 			++m_new_farmeshes;
 
-			[this, block, step, &far_make_mesh_timestamp]() mutable {
+			{
 				auto &client_map = getEnv().getClientMap();
 				const auto &control = client_map.getControl();
 				auto blockpos = block->getPos();
@@ -380,19 +387,21 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 				bool other_draw_block = false;
 				if (tree_result->pos != blockpos || tree_result->step != step) {
 					other_draw_block = true;
-					step = tree_result->step;
+					auto &step = tree_result->step;
 					blockpos = tree_result->pos;
 					const auto lock = far_blocks.lock_unique_rec();
 					if (const auto &it = far_blocks.find(blockpos);
 							it != far_blocks.end() && it->second->far_step == step) {
-						block = it->second;
+						auto &block = it->second;
+						block_status(block, step);
+						/*
 						if (block->far_make_mesh_timestamp <= 0 ||
 								(update_farmesh && block->far_make_mesh_timestamp <
 														   far_make_mesh_timestamp)) {
 							block->far_make_mesh_timestamp = far_make_mesh_timestamp;
 						}
 						block->far_status = MapBlock::far_status_e::s3_recieved;
-
+*/
 					} else {
 						return;
 					}
@@ -419,7 +428,7 @@ void Client::processSingleBlockData(MsgpackPacketSafe &packet)
 					}
 				}
 #endif
-			}();
+			} //();
 		}
 	});
 
