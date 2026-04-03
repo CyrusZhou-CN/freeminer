@@ -115,8 +115,8 @@ v3bpos_t playerBlockAlign(
 #if USE_POS32
 using tpos_t = bpos_t;
 using v3tpos_t = v3bpos_t;
-#define v3tpos_to_v3bpos(pos) pos
-#define tpos_to_bpos(pos) pos
+#define to_v3bpos(pos) pos
+#define to_bpos(pos) pos
 #else
 using tpos_t = int32_t;
 using v3tpos_t = v3s32;
